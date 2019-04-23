@@ -1,16 +1,31 @@
 package unimelb.bitbox;
 
-import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
-import org.json.simple.parser.ParseException;
-import org.json.simple.parser.JSONParser;
-
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
 
 import java.util.Base64;
+
+/**
+ * A Json communication protocol static class.
+ * All functions are static, that means it can be directly used as in JsonUtils.function()
+ * Without the need of creating new object
+ * <p>
+ * This class contains all the communication protocols required by the assignment
+ * And all protocol is encoded in to base64 String automatically
+ * <p>
+ * A usage example, sending a HANDSHAKE_REQUEST protocol:
+ * ...
+ * <p>
+ * out.writeUTF(JsonUtils.HANDSHAKE_REQUEST());
+ * ...
+ * <p>
+ * The class also contains a base64 decoder that has been integrate with Aaron's JSON Document class.
+ * A usage example, socket received a base64 encoded string -- data
+ * <p>
+ * Document doc = JsonUtils.decodeBase64toDocument(data);
+ */
 
 public class JsonUtils {
 
@@ -21,114 +36,132 @@ public class JsonUtils {
         return Base64.getEncoder().encodeToString(command.getBytes());
     }
 
-    public static JSONObject decodeBase64toJSONobj(String base64Str){
-        String JSONstr = new String(Base64.getDecoder().decode(base64Str.getBytes()));
+    /**
+     * decode a base64 messages to Aaron provided document type
+     *
+     * @param base64Str
+     * @return a json Document
+     */
+    public static Document decodeBase64toDocument(String base64Str) {
 
-        JSONParser parser = new JSONParser();
-
-        JSONObject retVal = new JSONObject();
-
-        try{
-            JSONArray array = (JSONArray)(parser.parse(JSONstr));
-
-            retVal = (JSONObject)array.get(1);
-
-        } catch (ParseException e) {
-            retVal.put("command","INVALID_PROTOCOL");
-            retVal.put("message", "message parsing error");
-        }
-
-        return retVal;
+        String data = new String(Base64.getDecoder().decode(base64Str.getBytes()));
+        return Document.parse(data);
     }
 
     /* The code below are set of communication protocol,
     which are alright encoded into base64 strings*/
 
-    // HANDSHAKE REQUEST
-    // @params:
-    //  HostPort p : a HostPort object contains the host and port info of the peer
 
+    /**
+     * CONNECTION REFUSED
+     *
+     * @param TCPmain: the main object of TCP_protocol, used for retrieving all connections
+     * @param msg:     message to send
+     * @return base64 string
+     */
+    public static String CONNECTION_REFUSED(TCP_protocol TCPmain, String msg) {
+        Document d = new Document();
+
+        d.append("comamnd", "CONNECTION_REFUSED");
+        d.append("message", msg);
+        d.append("peers", TCPmain.getAllExistingConnections());
+
+        return base64encodedCommand(d.toJson());
+    }
+
+    /**
+     * HANDSHAKE REQUEST
+     *
+     * @param p a HostPort object contains the host and port info of the peer
+     * @return base64 encoded json string
+     */
     public static String HANDSHAKE_REQUEST(HostPort p){
         Document d = new Document();
 
         d.append("command", "HANDSHAKE_REQUEST");
         d.append("hostPort", p.toDoc());
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
     // HANDSHAKE RESPONSE
     public static String HANDSHAKE_RESPONSE(){
-        HostPort thisPort = new HostPort(
-                Configuration.getConfigurationValue("advertisedName"),
-                Integer.parseInt(Configuration.getConfigurationValue("port"))
-        );
+
 
         Document d = new Document();
 
-        d.append("command","HANDSHAKE_RESPONSE");
-        d.append("hostPort", thisPort.toDoc());
+        d.append("command", "HANDSHAKE_RESPONSE");
+        d.append("hostPort", getSelfHostPort().toDoc());
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE CREATE REQUEST
-    // @params:
-    //  FileDescriptor fDesc: a FIleDescriptor Object of the file
-    //  String path: the path of the file
+    /**
+     * FILE CREATE REQUEST
+     *
+     * @param fDesc a FIleDescriptor Object of the file
+     * @param path  the path of the file
+     * @return base64 encoded json string
+     */
     public static String FILE_CREATE_REQUEST(FileSystemManager.FileDescriptor fDesc, String path){
         Document d = new Document();
         d.append("command", "FILE_CREATE_REQUEST");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE CREATE RESPONSE
-    // @params:
-    // FileDescriptor fDesc: a FIleDescriptor Object of the file
-    //  String path: the path of the file
-    //  String msg: send messages
-    //  boolean status: a boolean value indicate whether the request is successful or not
+    /**
+     * FILE CREATE RESPONSE
+     * @param fDesc a FIleDescriptor Object of the file
+     * @param path the path of the file
+     * @param msg send messages
+     * @param status a boolean value indicate whether the request is successful or not
+     * @return base64 encoded json string
+     */
     public static String FILE_CREATE_RESPONSE(FileSystemManager.FileDescriptor fDesc, String path, String msg, boolean status){
         Document d = new Document();
         d.append("command", "FILE_CREATE_RESPONSE");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
-        d.append("meesage",msg);
-        d.append("status",status);
+        d.append("meesage", msg);
+        d.append("status", status);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE BYTES REQUEST
-    // @params:
-    // FileDescriptor fDesc: a FIleDescriptor Object of the file
-    // String path: the path of the file
-    // int Position: the start position of the request bytes
-    // int length: the length of the bytes that what to receive
-    public static String FILE_BYTES_REQUEST(FileSystemManager.FileDescriptor fDesc, String path, int position, int length)
-    {
+    /**
+     * FILE BYTES REQUEST
+     *
+     * @param fDesc    a FIleDescriptor Object of the file
+     * @param path     the path of the file
+     * @param position the start position of the request bytes
+     * @param length   the length of the bytes that what to receive
+     * @return base64 encoded json string
+     */
+    public static String FILE_BYTES_REQUEST(FileSystemManager.FileDescriptor fDesc, String path, int position, int length) {
         Document d = new Document();
         d.append("command", "FILE_BYTES_REQUEST");
         d.append("fileDescriptor",fDesc.toDoc());
         d.append("pathName",path);
         d.append("position", position);
-        d.append("length",length);
+        d.append("length", length);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE BYTES RESPONSE
-    // @params:
-    // FileDescriptor fDesc: a FileDescriptor object of the file
-    // String path: the path of the file
-    // int Position: the start position of the request bytes
-    // int length: the length of the bytes
-    // String content: base64 encoded bytes
-    // String message: the message send to the peer
-    // boolean status: the status of the response
+    /**
+     * FILE BYTES RESPONSE
+     * @param fDesc  a FileDescriptor object of the file
+     * @param path the path of the file
+     * @param position the start position of the request bytes
+     * @param length the length of the bytes
+     * @param content base64 encoded bytes
+     * @param msg the message send to the peer
+     * @param status the status of the response
+     * @return base64 encoded json string
+     */
     public static String FILE_BYTES_RESPONSE(FileSystemManager.FileDescriptor fDesc,
                                              String path, int position, int length,
                                              String content, String msg,
@@ -143,45 +176,51 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE DELETE REQUEST
-    // @params:
-    // FileDescriptor fDesc: a FileDescriptor object of the file
-    // String path: the path of the file
-    public static String FILE_DELETE_REQUEST(FileSystemManager.FileDescriptor fDesc, String path)
-    {
+    /**
+     * FILE DELETE REQUEST
+     *
+     * @param fDesc a FileDescriptor object of the file
+     * @param path  the path of the file
+     * @return base64 encoded json string
+     */
+    public static String FILE_DELETE_REQUEST(FileSystemManager.FileDescriptor fDesc, String path) {
         Document d = new Document();
         d.append("command","FILE_DELETE_REQUEST");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE_DELETE_RESPONSE
-    // @params:
-    //  FileDescriptor fDesc: a FileDescriptor object of the file
-    //  String path: the path of the file
-    //  String msg: the message sent to the peer
-    //  boolean status: the status of the response
+    /**
+     * FILE DELETE RESPONSE
+     * @param fDesc  a FileDescriptor object of the file
+     * @param path the path of the file
+     * @param msg the message sent to the peer
+     * @param status the status of the response
+     * @return base64 encoded json string
+     */
     public static String FILE_DELETE_RESPONSE(FileSystemManager.FileDescriptor fDesc,
                                               String path, String msg, boolean status){
         Document d = new Document();
         d.append("command", "FILE_DELETE_RESPONSE");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
-        d.append("message",msg);
-        d.append("status",status);
+        d.append("message", msg);
+        d.append("status", status);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE MODIFY REQUEST
-    // @params:
-    //  FileDescriptor fDesc: a FileDescriptor object of the file
-    //  String path: the path of the file
+    /**
+     * FILE MODIFY REQUEST
+     * @param fDesc a FileDescriptor object of the file
+     * @param path the path of the file
+     * @return base64 encoded json string
+     */
     public static String FILE_MODIFY_REQUEST(FileSystemManager.FileDescriptor fDesc, String path) {
 
         Document d = new Document();
@@ -189,15 +228,17 @@ public class JsonUtils {
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // FILE MODIFY RESPONSE
-    // @params:
-    //  FileDescriptor fDesc: a FileDescriptor object of the file
-    //  String path: the path of the file
-    //  String msg: the message sent to the peer
-    //  boolean status: the status of the response
+    /**
+     * FILE MODIFY RESPONSE
+     * @param fDesc a FileDescriptor object of the file
+     * @param path  the path of the file
+     * @param msg the message sent to the peer
+     * @param status the status of the response
+     * @return base64 encoded json string
+     */
     public static String FILE_MODIFY_RESPONSE(FileSystemManager.FileDescriptor fDesc,
                                               String path, String msg, boolean status){
         Document d = new Document();
@@ -207,50 +248,58 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // DIRECTORY CREATE REQUEST
-    // @params:
-    // String dirPath: the path of the directory
+    /**
+     * DIRECTORY CREATE REQUEST
+     * @param dirPath the path of the directory
+     * @return base64 encoded json string
+     */
     public static String DIRECTORY_CREATE_REQUEST(String dirPath){
         Document d = new Document();
         d.append("command", "DIRECTORY_CREATE_REQUEST");
         d.append("pathName", dirPath);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // DIRECTORY CREATE RESPONSE
-    // @params:
-    //  String dirPath: the path of the directory
-    //  String msg: the message sent to the peer
-    //  boolean status: the status of the response
+    /**
+     * DIRECTORY CREATE RESPONSE
+     * @param dirPath the path of the directory
+     * @param msg the message sent to the peer
+     * @param status the status of the response
+     * @return base64 encoded json string
+     */
     public static String DIRECTORY_CREATE_RESPONSE(String dirPath, String msg, boolean status){
         Document d = new Document();
         d.append("pathName", dirPath);
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // DIRECTORY DELETE REQUEST
-    // @params:
-    // String dirPath: the path of the directory
+    /**
+     * DIRECTORY DELETE REQUEST
+     * @param dirPath the path of the directory
+     * @return base64 encoded json string
+     */
     public static String DIRECTORY_DELETE_REQUEST(String dirPath){
         Document d = new Document();
         d.append("command", "DIRECTORY_DELETE_REQUEST");
         d.append("pathName", dirPath);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
     }
 
-    // DIRECTORY DELETE RESPONSE
-    // @params:
-    //  String dirPath: the path of the directory
-    //  String msg: the message sent to the peer
-    //  boolean status: the status of the response
+    /**
+     * DIRECTORY DELETE RESPONSE
+     * @param dirPath the path of the directory
+     * @param msg the message sent to the peer
+     * @param status the status of the response
+     * @return base64 encoded json string
+     */
     public static String DIRECTORY_DELETE_RESPONSE(String dirPath, String msg, boolean status){
         Document d = new Document();
         d.append("command", "DIRECTORY_DELETE_RESPONSE");
@@ -258,6 +307,20 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toString());
+        return base64encodedCommand(d.toJson());
+    }
+
+    //----------------------------------------
+    // Other utils functions
+    //----------------------------------------
+
+    /**
+     * @return return the host port of it self
+     */
+    public static HostPort getSelfHostPort() {
+        return new HostPort(
+                Configuration.getConfigurationValue("advertisedName"),
+                Integer.parseInt(Configuration.getConfigurationValue("port"))
+        );
     }
 }
