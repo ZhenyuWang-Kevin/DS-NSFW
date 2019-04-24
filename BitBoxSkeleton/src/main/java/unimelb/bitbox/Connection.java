@@ -38,7 +38,7 @@ public class Connection implements Runnable {
             out = new DataOutputStream(aSocket.getOutputStream());
 
             // send Handshake request to other peers
-            out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(peer));
+            out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
 
             // read the peer response
             String data = in.readUTF();
@@ -49,7 +49,7 @@ public class Connection implements Runnable {
 
                 // TODO: print out information about the connection
 
-                peerInfo = new HostPort(d.getString("hostPort"));
+                peerInfo = new HostPort((Document)d.get("hostPort"));
                 flagActive = true;
                 // connection successful, start this connection thread
                 Thread t = new Thread(this);
@@ -167,13 +167,13 @@ public class Connection implements Runnable {
                     out = new DataOutputStream(aSocket.getOutputStream());
 
                     // send Handshake request to other peers
-                    out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(peer));
+                    out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
 
                     String data = in.readUTF();
                     Document d = JsonUtils.decodeBase64toDocument(data);
 
                     if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                        peerInfo = new HostPort(d.getString("hostPort"));
+                        peerInfo = new HostPort((Document)d.get("hostPort"));
                         flagActive = true;
                         connectionEstablisthed = true;
                         Thread t = new Thread(this);
