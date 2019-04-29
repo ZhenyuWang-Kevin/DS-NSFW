@@ -11,20 +11,21 @@ import java.util.Base64;
  * A Json communication protocol static class.
  * All functions are static, that means it can be directly used as in JsonUtils.function()
  * Without the need of creating new object
- * <p>
+ *
  * This class contains all the communication protocols required by the assignment
  * And all protocol is encoded in to base64 String automatically
- * <p>
+ *
  * A usage example, sending a HANDSHAKE_REQUEST protocol:
  * ...
- * <p>
- * out.writeUTF(JsonUtils.HANDSHAKE_REQUEST());
+ *
+ *  out.writeUTF(JsonUtils.HANDSHAKE_REQUEST());
  * ...
- * <p>
+ *
  * The class also contains a base64 decoder that has been integrate with Aaron's JSON Document class.
  * A usage example, socket received a base64 encoded string -- data
- * <p>
+ *
  * Document doc = JsonUtils.decodeBase64toDocument(data);
+ *
  */
 
 public class JsonUtils {
@@ -38,11 +39,10 @@ public class JsonUtils {
 
     /**
      * decode a base64 messages to Aaron provided document type
-     *
      * @param base64Str
      * @return a json Document
      */
-    public static Document decodeBase64toDocument(String base64Str) {
+    public static Document decodeBase64toDocument(String base64Str){
 
         String data = new String(Base64.getDecoder().decode(base64Str.getBytes()));
         return Document.parse(data);
@@ -54,12 +54,11 @@ public class JsonUtils {
 
     /**
      * CONNECTION REFUSED
-     *
      * @param TCPmain: the main object of TCP_protocol, used for retrieving all connections
-     * @param msg:     message to send
+     * @param msg: message to send
      * @return base64 string
      */
-    public static String CONNECTION_REFUSED(TCP_protocol TCPmain, String msg) {
+    public static String CONNECTION_REFUSED(TCP_protocol TCPmain, String msg){
         Document d = new Document();
 
         d.append("comamnd", "CONNECTION_REFUSED");
@@ -71,7 +70,6 @@ public class JsonUtils {
 
     /**
      * HANDSHAKE REQUEST
-     *
      * @param p a HostPort object contains the host and port info of the peer
      * @return base64 encoded json string
      */
@@ -90,7 +88,7 @@ public class JsonUtils {
 
         Document d = new Document();
 
-        d.append("command", "HANDSHAKE_RESPONSE");
+        d.append("command","HANDSHAKE_RESPONSE");
         d.append("hostPort", getSelfHostPort().toDoc());
 
         return base64encodedCommand(d.toJson());
@@ -98,9 +96,8 @@ public class JsonUtils {
 
     /**
      * FILE CREATE REQUEST
-     *
      * @param fDesc a FIleDescriptor Object of the file
-     * @param path  the path of the file
+     * @param path the path of the file
      * @return base64 encoded json string
      */
     public static String FILE_CREATE_REQUEST(FileSystemManager.FileDescriptor fDesc, String path){
@@ -125,28 +122,28 @@ public class JsonUtils {
         d.append("command", "FILE_CREATE_RESPONSE");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
-        d.append("meesage", msg);
-        d.append("status", status);
+        d.append("meesage",msg);
+        d.append("status",status);
 
         return base64encodedCommand(d.toJson());
     }
 
     /**
      * FILE BYTES REQUEST
-     *
-     * @param fDesc    a FIleDescriptor Object of the file
-     * @param path     the path of the file
+     * @param fDesc a FIleDescriptor Object of the file
+     * @param path the path of the file
      * @param position the start position of the request bytes
-     * @param length   the length of the bytes that what to receive
+     * @param length the length of the bytes that what to receive
      * @return base64 encoded json string
      */
-    public static String FILE_BYTES_REQUEST(FileSystemManager.FileDescriptor fDesc, String path, int position, int length) {
+    public static String FILE_BYTES_REQUEST(FileSystemManager.FileDescriptor fDesc, String path, long position, long length)
+    {
         Document d = new Document();
         d.append("command", "FILE_BYTES_REQUEST");
         d.append("fileDescriptor",fDesc.toDoc());
         d.append("pathName",path);
         d.append("position", position);
-        d.append("length", length);
+        d.append("length",length);
 
         return base64encodedCommand(d.toJson());
     }
@@ -163,7 +160,7 @@ public class JsonUtils {
      * @return base64 encoded json string
      */
     public static String FILE_BYTES_RESPONSE(FileSystemManager.FileDescriptor fDesc,
-                                             String path, int position, int length,
+                                             String path, long position, long length,
                                              String content, String msg,
                                              boolean status) {
         Document d = new Document();
@@ -181,12 +178,12 @@ public class JsonUtils {
 
     /**
      * FILE DELETE REQUEST
-     *
      * @param fDesc a FileDescriptor object of the file
-     * @param path  the path of the file
+     * @param path the path of the file
      * @return base64 encoded json string
      */
-    public static String FILE_DELETE_REQUEST(FileSystemManager.FileDescriptor fDesc, String path) {
+    public static String FILE_DELETE_REQUEST(FileSystemManager.FileDescriptor fDesc, String path)
+    {
         Document d = new Document();
         d.append("command","FILE_DELETE_REQUEST");
         d.append("fileDescriptor", fDesc.toDoc());
@@ -209,8 +206,8 @@ public class JsonUtils {
         d.append("command", "FILE_DELETE_RESPONSE");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
-        d.append("message", msg);
-        d.append("status", status);
+        d.append("message",msg);
+        d.append("status",status);
 
         return base64encodedCommand(d.toJson());
     }
@@ -300,7 +297,7 @@ public class JsonUtils {
      * @param status the status of the response
      * @return base64 encoded json string
      */
-    public static String DIRECTORY_DELETE_RESPONSE(String dirPath, String msg, boolean status){
+    public static String DIRECTORY_DELETE_RESPONSE(String dirPath, String msg, boolean status) {
         Document d = new Document();
         d.append("command", "DIRECTORY_DELETE_RESPONSE");
         d.append("pathName", dirPath);
@@ -310,14 +307,28 @@ public class JsonUtils {
         return base64encodedCommand(d.toJson());
     }
 
+    /**
+     * INVALID_PROTOCOL
+     * @param msg
+     * @return base64 String
+     */
+    public static String INVALID_PROTOCOL(String msg){
+        Document d = new Document();
+        d.append("command", "INVALID_PROTOCOL");
+        d.append("message", msg);
+
+        return base64encodedCommand(d.toJson());
+    }
+
     //----------------------------------------
     // Other utils functions
     //----------------------------------------
 
     /**
+     *
      * @return return the host port of it self
      */
-    public static HostPort getSelfHostPort() {
+    public static HostPort getSelfHostPort(){
         return new HostPort(
                 Configuration.getConfigurationValue("advertisedName"),
                 Integer.parseInt(Configuration.getConfigurationValue("port"))
