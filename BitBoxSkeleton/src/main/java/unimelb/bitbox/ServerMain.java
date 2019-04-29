@@ -12,14 +12,17 @@ import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 public class ServerMain implements FileSystemObserver {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
-	
+	private TCP_protocol TCP;
+
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
+		TCP = new TCP_protocol();
 	}
 
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
+		TCP.
 	}
 	
 }

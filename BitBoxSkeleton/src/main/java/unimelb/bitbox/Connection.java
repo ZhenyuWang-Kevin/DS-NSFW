@@ -73,6 +73,7 @@ public class Connection implements Runnable {
         }
     }
 
+    // Main work goes here
     private void receiveCommand(Document json){
         switch(json.getString("command")){
             case "INVALID_PROTOCOL":
