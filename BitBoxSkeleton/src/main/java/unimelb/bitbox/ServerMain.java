@@ -2,6 +2,7 @@ package unimelb.bitbox;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Configuration;
@@ -9,20 +10,37 @@ import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemObserver;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
-public class ServerMain implements FileSystemObserver {
+public class ServerMain implements FileSystemObserver, Runnable {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
-	private TCP_protocol TCP;
+	private float timer;
 
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
-		TCP = new TCP_protocol();
+		timer = 0;
+
+		Thread t = new Thread(this);
+		t.start();
+	}
+
+	public void run(){
+		// create a timer to count for sync events
+		while(true){
+			long start = System.nanoTime();
+			if(timer >= 60){
+				ArrayList<FileSystemEvent> events = fileSystemManager.generateSyncEvents();
+
+				for(FileSystemEvent e:events){
+					processFileSystemEvent(e);
+				}
+				timer = 0;
+			}
+			timer += (System.nanoTime() - start);
+		}
 	}
 
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
-		TCP.
 	}
-	
 }
