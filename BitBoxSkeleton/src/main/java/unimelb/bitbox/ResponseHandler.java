@@ -28,7 +28,7 @@ public class ResponseHandler {
     };
 
     public void receivedFileCreateRequest(Document d){
-
+        //
     }
 
     public void receivedFileCreateResponse(Document d){

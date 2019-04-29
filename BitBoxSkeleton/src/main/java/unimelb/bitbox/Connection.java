@@ -22,22 +22,7 @@ public class Connection implements Runnable {
     private ResponseHandler rh;
     public boolean flagActive;
     protected String commandStr;
-    private FileSystemManager.FileDescriptor requestfDesc;
-    private String requestPathName;
     private boolean readyForBytesRequest;
-
-    public void setRequestfile(FileSystemManager.FileDescriptor f, String pathName){
-        this.requestfDesc = f;
-        this.requestPathName = pathName;
-    }
-
-    public FileSystemManager.FileDescriptor getRequestfDesc(){
-        return this.requestfDesc;
-    }
-
-    public String getRequestPathName(){
-        return this.requestPathName;
-    }
 
     public void run() {
         log.info("Connection established with " + peerInfo.toString());
@@ -52,7 +37,6 @@ public class Connection implements Runnable {
                 log.warning(e.getMessage() + this.peerInfo);
             }
         }
-
     }
 
     public void closeSocket(){
@@ -205,8 +189,6 @@ public class Connection implements Runnable {
 
     public Connection(HostPort peer){
         commandStr = null;
-        requestfDesc = null;
-        requestPathName = null;
         readyForBytesRequest = false;
 
         rh = new ResponseHandler(this);
@@ -252,8 +234,6 @@ public class Connection implements Runnable {
     // Incoming connection
     public Connection(Socket aSocket, TCP_protocol TCPmain){
         commandStr = null;
-        requestfDesc = null;
-        requestPathName = null;
         readyForBytesRequest = false;
 
         rh = new ResponseHandler(this);
