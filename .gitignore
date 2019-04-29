@@ -1,4 +1,6 @@
 
+
+*.class
 BitBoxSkeleton/.idea/.name
 BitBoxSkeleton/.idea/artifacts/bitbox_jar.xml
 BitBoxSkeleton/.idea/compiler.xml
@@ -23,3 +25,4 @@ BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager$FileSystemEv
 BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager.class
 BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemObserver.class
 BitBoxSkeleton/target/classes/unimelb/bitbox/util/HostPort.class
+
