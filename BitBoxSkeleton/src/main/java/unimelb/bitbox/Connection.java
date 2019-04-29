@@ -8,9 +8,12 @@ import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.logging.Logger;
 
 public class Connection implements Runnable {
+
 
     private static Logger log = Logger.getLogger(Connection.class.getName());
 
@@ -18,61 +21,14 @@ public class Connection implements Runnable {
     private DataOutputStream out;
     private Socket aSocket;
     private HostPort peerInfo;
-    private TCP_protocol TCPmain;
+    private TCPMain TCPmain;
     private ResponseHandler rh;
-    public boolean flagActive;
-    protected String commandStr;
-    private FileSystemManager.FileDescriptor requestfDesc;
-    private String requestPathName;
     private boolean readyForBytesRequest;
 
-    public void setRequestfile(FileSystemManager.FileDescriptor f, String pathName){
-        this.requestfDesc = f;
-        this.requestPathName = pathName;
-    }
+    public boolean flagActive;
 
-    public FileSystemManager.FileDescriptor getRequestfDesc(){
-        return this.requestfDesc;
-    }
 
-    public String getRequestPathName(){
-        return this.requestPathName;
-    }
-
-    public void run() {
-        log.info("Connection established with " + peerInfo.toString());
-        // TODO handles the protocol
-        while (true){
-            // receive command
-            try {
-                aSocket.setSoTimeout(0);
-                String data = in.readUTF();
-                receiveCommand(JsonUtils.decodeBase64toDocument(data));
-            } catch (IOException e) {
-                log.warning(e.getMessage() + this.peerInfo);
-            }
-        }
-
-    }
-
-    public void closeSocket(){
-        try{
-            in.close();
-            out.close();
-            aSocket.close();
-        }catch(IOException e){
-            log.warning(e.getMessage());
-        }
-    }
-
-    public void sendCommand(String base64Str){
-        try{
-            out.writeUTF(base64Str);
-        }catch(IOException e){
-            log.warning(e.getMessage());
-        }
-    }
-
+    // Main work goes here
     private void receiveCommand(Document json){
         switch(json.getString("command")){
             case "INVALID_PROTOCOL":
@@ -131,23 +87,58 @@ public class Connection implements Runnable {
             default:
                 break;
         }
-
     }
 
-    public void setByteRequestAvailibility(boolean val){
-        this.readyForBytesRequest = val;
+    public void run() {
+        log.info("Connection established with " + peerInfo.toString());
+        // TODO handles the protocol
+        while (true){
+            // receive command
+            try {
+                aSocket.setSoTimeout(0);
+                String data = in.readUTF();
+                receiveCommand(JsonUtils.decodeBase64toDocument(data));
+            } catch (IOException e) {
+                log.warning(e.getMessage() + this.peerInfo);
+            }
+        }
     }
 
-    public Document listenForPackage(){
+    // close the socket
+    public void closeSocket(){
         try{
-            // set socket time out for 10 secs
-            aSocket.setSoTimeout(10*1000);
-            String data = in.readUTF();
-            return JsonUtils.decodeBase64toDocument(data);
+            in.close();
+            out.close();
+            aSocket.close();
         }catch(IOException e){
             log.warning(e.getMessage());
-            return null;
         }
+    }
+
+    public void sendCommand(String base64Str){
+        try{
+            out.writeUTF(base64Str);
+        }catch(IOException e){
+            log.warning(e.getMessage());
+        }
+    }
+
+    // send the command through the socket
+    public void sendCommand(String base64Str, FileSystemManager.EVENT event){
+        if(event.equals("FILE_CREATE") || event.equals("FILE_MODIFY")){
+
+        }
+
+        try{
+            out.writeUTF(base64Str);
+        }catch(IOException e){
+            log.warning(e.getMessage());
+        }
+    }
+
+    // set the flag for byte transfer allowance
+    public void setByteRequestAvailability(boolean val){
+        this.readyForBytesRequest = val;
     }
 
     public HostPort getPeerInfo(){
@@ -159,9 +150,9 @@ public class Connection implements Runnable {
     private boolean searchThroughPeers(ArrayList<Document> _peers){
         ArrayList<Document> peers = _peers;
 
-        boolean connectionEstablisthed = false;
+        boolean connectionEstablished = false;
 
-        while(!connectionEstablisthed){
+        while(!connectionEstablished){
             if(peers.size() == 0){
                 return false;
             }
@@ -183,7 +174,7 @@ public class Connection implements Runnable {
                     if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
                         peerInfo = new HostPort((Document) d.get("hostPort"));
                         flagActive = true;
-                        connectionEstablisthed = true;
+                        connectionEstablished = true;
 
                         Thread t = new Thread(this);
                         t.start();
@@ -203,9 +194,6 @@ public class Connection implements Runnable {
     }
 
     public Connection(HostPort peer){
-        commandStr = null;
-        requestfDesc = null;
-        requestPathName = null;
         readyForBytesRequest = false;
 
         rh = new ResponseHandler(this);
@@ -249,14 +237,9 @@ public class Connection implements Runnable {
     }
 
     // Incoming connection
-    public Connection(Socket aSocket, TCP_protocol TCPmain){
-        commandStr = null;
-        requestfDesc = null;
-        requestPathName = null;
+    public Connection(Socket aSocket, TCPMain TCPmain){
         readyForBytesRequest = false;
-
         rh = new ResponseHandler(this);
-        commandStr = null;
         this.TCPmain = TCPmain;
 
         try{
@@ -273,7 +256,7 @@ public class Connection implements Runnable {
                 // TODO get peerInfo
                 peerInfo = new HostPort((Document) d.get("hostPort"));
 
-                if(this.TCPmain.checkNewConnectionAvailable()){
+                if(!this.TCPmain.maximumConnectionReached()){
                     // available for connection, send HANDSHAKE RESPONSE
                     out.writeUTF(JsonUtils.HANDSHAKE_RESPONSE());
 
@@ -293,7 +276,6 @@ public class Connection implements Runnable {
                     aSocket.close();
                 }
             }
-
         } catch(IOException e){
             log.warning(e.getMessage());
         }

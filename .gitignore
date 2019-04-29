@@ -1,4 +1,5 @@
 
+
 *.class
 BitBoxSkeleton/.idea/.name
 BitBoxSkeleton/.idea/artifacts/bitbox_jar.xml
@@ -10,3 +11,18 @@ BitBoxSkeleton/.idea/workspace.xml
 BitBoxSkeleton/out/artifacts/bitbox_jar/bitbox.jar
 BitBoxSkeleton/share/file - Copy
 BitBoxSkeleton/src/main/resource/META-INF/MANIFEST.MF
+BitBoxSkeleton/target/classes/unimelb/bitbox/Connection.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/JsonUtils.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/Peer.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/ServerMain.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/TCP_protocol.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/Configuration.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/Document.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager$EVENT.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager$FileDescriptor.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager$FileLoader.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager$FileSystemEvent.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemManager.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/FileSystemObserver.class
+BitBoxSkeleton/target/classes/unimelb/bitbox/util/HostPort.class
+

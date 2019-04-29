@@ -58,12 +58,12 @@ public class JsonUtils {
      * @param msg: message to send
      * @return base64 string
      */
-    public static String CONNECTION_REFUSED(TCP_protocol TCPmain, String msg){
+    public static String CONNECTION_REFUSED(TCPMain TCPmain, String msg){
         Document d = new Document();
 
         d.append("comamnd", "CONNECTION_REFUSED");
         d.append("message", msg);
-        d.append("peers", TCPmain.getAllExistingConnections());
+        d.append("peers", TCPmain.getAllConnections());
 
         return base64encodedCommand(d.toJson());
     }
