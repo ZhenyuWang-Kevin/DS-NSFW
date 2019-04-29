@@ -25,7 +25,7 @@ public class ResponseHandler {
     public ResponseHandler(Connection c){
         this.connection = c;
         this.maximumRequestResend = 3;
-    };
+    }
 
     public void receivedFileCreateRequest(Document d){
         //
@@ -145,7 +145,12 @@ public class ResponseHandler {
     public void receivedDirectoryDeleteResponse(Document d){}
 
     public void receivedFileBytesRequest(Document d){
+		// TODO send file byte response according to the request document
     }
+
+    public void receivedFileBytesResponse(Document d){
+		//TODO handle received byte response from peer
+	}
 
     private String base64encodedString(ByteBuffer buf){
         return Base64.getEncoder().encodeToString(buf.array());

@@ -1,6 +1,5 @@
 package unimelb.bitbox;
 
-import com.sun.javaws.exceptions.ExitException;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 import unimelb.bitbox.util.HostPort;
@@ -13,8 +12,8 @@ import java.util.logging.Logger;
 public class TCPMain {
 
     private static Logger log = Logger.getLogger(TCPMain.class.getName());
-    private HashMap<HostPort, Connection> Incomming;
-    private HashMap<HostPort, Connection> Outgoing;
+    private HashMap<String, Connection> Incomming;
+    private HashMap<String, Connection> Outgoing;
     private ServerSocket listenSocket;
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
@@ -28,7 +27,7 @@ public class TCPMain {
                     Socket incommingConnection = listenSocket.accept();
                     Connection c = new Connection(incommingConnection, TCPHolder);
                     if(c.flagActive){
-                        Incomming.put(c.getPeerInfo(), c);
+                        Incomming.put(c.getPeerInfo().toString(), c);
                     }
                 }catch(IOException e){
                     log.warning(e.getMessage());
@@ -45,8 +44,8 @@ public class TCPMain {
                 while(eventBuffer.size() > 0){
                     FileSystemEvent event = eventBuffer.poll();
                     String command = translateEventToCommand(event);
-                    Incomming.forEach((key,value) -> value.sendCommand(command, event.event));
-                    Outgoing.forEach((key,value)->value.sendCommand(command, event.event));
+                    Incomming.forEach((key,value) -> value.sendCommand(command));
+                    Outgoing.forEach((key,value)->value.sendCommand(command));
                 }
             }
         }
@@ -76,7 +75,7 @@ public class TCPMain {
                 Connection c = new Connection(tmp);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){
-                    Outgoing.put(tmp, c);
+                    Outgoing.put(tmp.toString(), c);
                 }
             }
         }
@@ -105,7 +104,6 @@ public class TCPMain {
 
         Incomming.forEach((key, value)-> connections.add(key.toString()));
         Outgoing.forEach((key, value)-> connections.add(key.toString()));
-
         return connections;
 
     }

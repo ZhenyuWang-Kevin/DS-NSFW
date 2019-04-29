@@ -8,8 +8,12 @@ import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class Connection implements Runnable {
@@ -24,12 +28,71 @@ public class Connection implements Runnable {
     private TCPMain TCPmain;
     private ResponseHandler rh;
     private boolean readyForBytesRequest;
+    private HashMap<String, ByteTransferTask> threadManager;
+    private ExecutorService executor;
 
     public boolean flagActive;
+
+    // Multi-threading tasks
+    class ByteTransferTask implements Runnable{
+        private ResponseHandler rh;
+        public String fDesc;
+        private Document doc;
+        private long positionTracker = 0;
+        private long remainingFileSize;
+        public boolean finished = false;
+        // task type, 0 for receiving file from peer, 1 for sending to peer
+        private int taskType;
+
+        public ByteTransferTask(String f, long fileSize, int type, ResponseHandler rh){
+            this.fDesc = f;
+            this.doc = null;
+            this.remainingFileSize = fileSize;
+            taskType = type;
+            this.rh = rh;
+        }
+
+        public void receive(Document d){
+            this.doc = d;
+        }
+
+        public void run(){
+            while(remainingFileSize > 0){
+                if(doc != null) {
+                    if(taskType == 0) {
+                        if (doc.getLong("position") == positionTracker) {
+                            synchronized (this){
+                                rh.receivedFileBytesResponse(this.doc);
+                            }
+                        }
+                        remainingFileSize -= doc.getLong("length");
+                        positionTracker += doc.getLong("length");
+                        if (remainingFileSize > 0) {
+                            // TODO send next byte request
+                        }
+                        doc = null;
+                    }
+                    else if(taskType == 1){
+                        synchronized (this)
+                        {
+                            rh.receivedFileBytesRequest(this.doc);
+                        }
+                        // Only update the remaining fileSize and position Tracker when two peers position are synchronized
+                        if(doc.getLong("position") == positionTracker){
+                            remainingFileSize -= doc.getLong("length");
+                            positionTracker += doc.getLong("length");
+                        }
+                    }
+                }
+            }
+            finished = true;
+        }
+    }
 
 
     // Main work goes here
     private void receiveCommand(Document json){
+        Document fdesc;
         switch(json.getString("command")){
             case "INVALID_PROTOCOL":
                 // TODO disconnect the connection
@@ -40,6 +103,19 @@ public class Connection implements Runnable {
                 break;
 
             case "FILE_CREATE_REQUEST":
+                // TODO check for whether file needs transfer
+                //  if yes, send a response, then create a new thread
+                fdesc = (Document)json.get("fileDescriptor");
+                // if there is no thread for this key
+                if(!threadManager.containsKey(fdesc.toString())){
+                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh));
+                    executor.execute(threadManager.get(fdesc.toString()));
+                }
+                else if(threadManager.get(fdesc.toString()).finished){
+                    threadManager.remove(fdesc.toString());
+                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh));
+                    executor.execute(threadManager.get(fdesc.toString()));
+                }
                 rh.receivedFileCreateRequest(json);
                 break;
 
@@ -60,11 +136,37 @@ public class Connection implements Runnable {
                 break;
 
             case "FILE_BYTES_REQUEST":
-                if(this.readyForBytesRequest)
-                    rh.receivedFileBytesRequest(json);
+                fdesc = (Document)json.get("fileDescriptor");
+                if(threadManager.containsKey(fdesc.toString())){
+                    synchronized (this) {
+                        ByteTransferTask t = threadManager.get(fdesc.toString());
+                        t.receive(json);
+                    }
+                }
                 break;
+            case "FILE_BYTES_RESPONSE":
+                fdesc = (Document)json.get("fileDescriptor");
+                if(threadManager.containsKey(fdesc.toString())){
+                    synchronized (this) {
+                        ByteTransferTask t = threadManager.get(fdesc.toString());
+                        t.receive(json);
+                    }
+                }
 
             case "FILE_CREATE_RESPONSE":
+                if(json.getBoolean("status")){
+                    fdesc = (Document)json.get("fileDescriptor");
+                    // if there is no thread for this key
+                    if(!threadManager.containsKey(fdesc.toString())){
+                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 1,this.rh));
+                        executor.execute(threadManager.get(fdesc.toString()));
+                    }
+                    else if(threadManager.get(fdesc.toString()).finished){
+                        threadManager.remove(fdesc.toString());
+                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"),1,this.rh));
+                        executor.execute(threadManager.get(fdesc.toString()));
+                    }
+                }
                 rh.receivedFileCreateResponse(json);
                 break;
 
@@ -87,6 +189,12 @@ public class Connection implements Runnable {
             default:
                 break;
         }
+    }
+
+    private void connectionInit(){
+        rh = new ResponseHandler(this);
+        this.threadManager = new HashMap<>();
+        this.executor = Executors.newCachedThreadPool();
     }
 
     public void run() {
@@ -116,19 +224,6 @@ public class Connection implements Runnable {
     }
 
     public void sendCommand(String base64Str){
-        try{
-            out.writeUTF(base64Str);
-        }catch(IOException e){
-            log.warning(e.getMessage());
-        }
-    }
-
-    // send the command through the socket
-    public void sendCommand(String base64Str, FileSystemManager.EVENT event){
-        if(event.equals("FILE_CREATE") || event.equals("FILE_MODIFY")){
-
-        }
-
         try{
             out.writeUTF(base64Str);
         }catch(IOException e){
@@ -194,11 +289,10 @@ public class Connection implements Runnable {
     }
 
     public Connection(HostPort peer){
-        readyForBytesRequest = false;
 
-        rh = new ResponseHandler(this);
 
-        this.TCPmain = TCPmain;
+        connectionInit();
+
         try{
             aSocket = new Socket(peer.host, peer.port);
             in = new DataInputStream(aSocket.getInputStream());
@@ -238,8 +332,9 @@ public class Connection implements Runnable {
 
     // Incoming connection
     public Connection(Socket aSocket, TCPMain TCPmain){
-        readyForBytesRequest = false;
-        rh = new ResponseHandler(this);
+
+        connectionInit();
+
         this.TCPmain = TCPmain;
 
         try{
