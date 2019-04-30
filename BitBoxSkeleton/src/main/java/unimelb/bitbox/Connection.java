@@ -1,5 +1,6 @@
 package unimelb.bitbox;
 
+import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
@@ -43,13 +44,15 @@ public class Connection implements Runnable {
         public boolean finished = false;
         // task type, 0 for receiving file from peer, 1 for sending to peer
         private int taskType;
+        private Connection c;
 
-        public ByteTransferTask(String f, long fileSize, int type, ResponseHandler rh){
+        public ByteTransferTask(String f, long fileSize, int type, ResponseHandler rh, Connection c){
             this.fDesc = f;
             this.doc = null;
             this.remainingFileSize = fileSize;
             taskType = type;
             this.rh = rh;
+            this.c = c;
         }
 
         public void receive(Document d){
@@ -69,6 +72,11 @@ public class Connection implements Runnable {
                         positionTracker += doc.getLong("length");
                         if (remainingFileSize > 0) {
                             // TODO send next byte request
+                            Document fD = (Document)doc.get("fileDescriptor");
+                            FileSystemManager.FileDescriptor fDescriptor= ResponseHandler.fManager.new FileDescriptor(fD.getLong("lastModified"), fD.getString("md5"), fD.getLong("fileSize"));
+                            synchronized (this){
+                                c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor,doc.getString("pathName"), positionTracker, Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
+                            }
                         }
                         doc = null;
                     }
@@ -108,12 +116,12 @@ public class Connection implements Runnable {
                 fdesc = (Document)json.get("fileDescriptor");
                 // if there is no thread for this key
                 if(!threadManager.containsKey(fdesc.toString())){
-                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh));
+                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh, this));
                     executor.execute(threadManager.get(fdesc.toString()));
                 }
                 else if(threadManager.get(fdesc.toString()).finished){
                     threadManager.remove(fdesc.toString());
-                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh));
+                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh, this));
                     executor.execute(threadManager.get(fdesc.toString()));
                 }
                 rh.receivedFileCreateRequest(json);
@@ -154,16 +162,17 @@ public class Connection implements Runnable {
                 }
 
             case "FILE_CREATE_RESPONSE":
+                // when receive positive response, create thread to handle file transfer
                 if(json.getBoolean("status")){
                     fdesc = (Document)json.get("fileDescriptor");
                     // if there is no thread for this key
                     if(!threadManager.containsKey(fdesc.toString())){
-                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 1,this.rh));
+                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 1,this.rh, this));
                         executor.execute(threadManager.get(fdesc.toString()));
                     }
                     else if(threadManager.get(fdesc.toString()).finished){
                         threadManager.remove(fdesc.toString());
-                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"),1,this.rh));
+                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"),1,this.rh, this));
                         executor.execute(threadManager.get(fdesc.toString()));
                     }
                 }
