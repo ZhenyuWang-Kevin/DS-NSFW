@@ -91,6 +91,7 @@ public class Connection implements Runnable {
                             remainingFileSize -= doc.getLong("length");
                             positionTracker += doc.getLong("length");
                         }
+                        doc = null;
                     }
                 }
             }
