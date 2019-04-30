@@ -7,6 +7,7 @@ import unimelb.bitbox.util.HostPort;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -212,10 +213,17 @@ public class Connection implements Runnable {
         while (true){
             // receive command
             try {
-                aSocket.setSoTimeout(0);
+                aSocket.setSoTimeout(20*1000);
                 String data = in.readUTF();
                 receiveCommand(JsonUtils.decodeBase64toDocument(data));
-            } catch (IOException e) {
+            } catch (SocketTimeoutException e) {
+                // check for finished thread every 20sec, and remove any finished task class.
+                threadManager.forEach((key,value) -> {
+                    if(value.finished){
+                        threadManager.remove(key);
+                    }
+                });
+            } catch (IOException e){
                 log.warning(e.getMessage() + this.peerInfo);
             }
         }
