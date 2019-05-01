@@ -258,11 +258,8 @@ public class ResponseHandler {
 					desc.getLong("fileSize"));
 
 			String pathName = d.getString("pathName");
-			boolean status = d.getBoolean("status");
 
 			try {
-				//if successfully read
-				if (status){
 					ByteBuffer buf = fManager.readFile(f.md5, d.getLong("position"), d.getLong("length"));
 					//write to the file
 					if (fManager.writeFile(pathName, buf, d.getLong("position"))){
@@ -272,10 +269,6 @@ public class ResponseHandler {
 						//if failed cancel file loader and send failure response
 						fManager.cancelFileLoader(pathName);
 					}
-				}else{
-					//if unsuccessfully read, cancel file loader and send failure response
-					fManager.cancelFileLoader(pathName);
-				}
 			}catch(IOException e){
 				log.warning(e.getMessage());
 			}catch(NoSuchAlgorithmException e){
