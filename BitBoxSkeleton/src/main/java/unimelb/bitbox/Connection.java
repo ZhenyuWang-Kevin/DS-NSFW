@@ -117,14 +117,14 @@ public class Connection implements Runnable {
                 //  if yes, send a response, then create a new thread
                 fdesc = (Document)json.get("fileDescriptor");
                 // if there is no thread for this key
-                if(!threadManager.containsKey(fdesc.toString())){
-                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh, this));
-                    executor.execute(threadManager.get(fdesc.toString()));
+                if(!threadManager.containsKey(fdesc.toJson())){
+                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"), 0, this.rh, this));
+                    executor.execute(threadManager.get(fdesc.toJson()));
                 }
-                else if(threadManager.get(fdesc.toString()).finished){
-                    threadManager.remove(fdesc.toString());
-                    threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 0, this.rh, this));
-                    executor.execute(threadManager.get(fdesc.toString()));
+                else if(threadManager.get(fdesc.toJson()).finished){
+                    threadManager.remove(fdesc.toJson());
+                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"), 0, this.rh, this));
+                    executor.execute(threadManager.get(fdesc.toJson()));
                 }
                 rh.receivedFileCreateRequest(json);
                 break;
@@ -147,18 +147,18 @@ public class Connection implements Runnable {
 
             case "FILE_BYTES_REQUEST":
                 fdesc = (Document)json.get("fileDescriptor");
-                if(threadManager.containsKey(fdesc.toString())){
+                if(threadManager.containsKey(fdesc.toJson())){
                     synchronized (this) {
-                        ByteTransferTask t = threadManager.get(fdesc.toString());
+                        ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
                     }
                 }
                 break;
             case "FILE_BYTES_RESPONSE":
                 fdesc = (Document)json.get("fileDescriptor");
-                if(threadManager.containsKey(fdesc.toString())){
+                if(threadManager.containsKey(fdesc.toJson())){
                     synchronized (this) {
-                        ByteTransferTask t = threadManager.get(fdesc.toString());
+                        ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
                     }
                 }
@@ -168,14 +168,14 @@ public class Connection implements Runnable {
                 if(json.getBoolean("status")){
                     fdesc = (Document)json.get("fileDescriptor");
                     // if there is no thread for this key
-                    if(!threadManager.containsKey(fdesc.toString())){
-                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"), 1,this.rh, this));
-                        executor.execute(threadManager.get(fdesc.toString()));
+                    if(!threadManager.containsKey(fdesc.toJson())){
+                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"), 1,this.rh, this));
+                        executor.execute(threadManager.get(fdesc.toJson()));
                     }
-                    else if(threadManager.get(fdesc.toString()).finished){
-                        threadManager.remove(fdesc.toString());
-                        threadManager.put(fdesc.toString(), new ByteTransferTask(fdesc.toString(), fdesc.getLong("fileSize"),1,this.rh, this));
-                        executor.execute(threadManager.get(fdesc.toString()));
+                    else if(threadManager.get(fdesc.toJson()).finished){
+                        threadManager.remove(fdesc.toJson());
+                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"),1,this.rh, this));
+                        executor.execute(threadManager.get(fdesc.toJson()));
                     }
                 }
                 rh.receivedFileCreateResponse(json);
