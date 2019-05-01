@@ -14,10 +14,12 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
 	private float timer;
+	private TCPMain TCP;
 
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		timer = 0;
+		TCP = new TCPMain();
 
 		Thread t = new Thread(this);
 		t.start();
@@ -42,5 +44,6 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
+
 	}
 }

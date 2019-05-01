@@ -126,4 +126,8 @@ public class TCPMain {
         // technically speaking, the event should never returns a null string
         return null;
     }
+
+    public void addEvent(FileSystemEvent event){
+        this.eventBuffer.add(event);
+    }
 }
