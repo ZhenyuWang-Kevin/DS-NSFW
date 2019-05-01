@@ -258,7 +258,7 @@ public class ResponseHandler {
 					desc.getLong("fileSize"));
 
 			String pathName = d.getString("pathName");
-			Boolean status = d.getBoolean("status");
+			boolean status = d.getBoolean("status");
 
 			try {
 				//if successfully read
