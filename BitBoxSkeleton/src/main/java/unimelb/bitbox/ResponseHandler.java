@@ -258,9 +258,10 @@ public class ResponseHandler {
 					desc.getLong("fileSize"));
 
 			String pathName = d.getString("pathName");
+			String content = d.getString("content");
 
 			try {
-					ByteBuffer buf = fManager.readFile(f.md5, d.getLong("position"), d.getLong("length"));
+					ByteBuffer buf = convertStringToByte(content);
 					//write to the file
 					if (fManager.writeFile(pathName, buf, d.getLong("position"))){
 						//check if file has been written completely
@@ -277,8 +278,15 @@ public class ResponseHandler {
 		}
 	}
 
+	//ByteBuffer to String
     private String base64encodedString(ByteBuffer buf){
         return Base64.getEncoder().encodeToString(buf.array());
     }
+
+	//String to Bytebuffer
+    private ByteBuffer convertStringToByte(String content) throws UnsupportedEncodingException {
+		return ByteBuffer.wrap(content.getBytes("utf-8"));
+	}
+
 
 }
