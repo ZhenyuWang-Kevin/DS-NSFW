@@ -20,6 +20,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		timer = 0;
 		TCP = new TCPMain();
+		ResponseHandler.fManager = fileSystemManager;
 
 		Thread t = new Thread(this);
 		t.start();
@@ -28,8 +29,8 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	public void run(){
 		// create a timer to count for sync events
 		while(true){
-			long start = System.nanoTime();
-			if(timer >= 60){
+			long start = System.currentTimeMillis();
+			if(timer >= 600*1000){
 				ArrayList<FileSystemEvent> events = fileSystemManager.generateSyncEvents();
 
 				for(FileSystemEvent e:events){
@@ -37,13 +38,13 @@ public class ServerMain implements FileSystemObserver, Runnable {
 				}
 				timer = 0;
 			}
-			timer += (System.nanoTime() - start);
+			timer += (System.currentTimeMillis() - start);
 		}
 	}
 
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
-
+		TCP.addEvent(fileSystemEvent);
 	}
 }

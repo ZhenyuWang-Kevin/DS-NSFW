@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 public class ResponseHandler {
     private static Logger log = Logger.getLogger(ResponseHandler.class.getName());
-    private static FileSystemManager fManager;
+    public static FileSystemManager fManager;
     private Connection connection;
     private static long maximumBlockSize = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
     private int maximumRequestResend;
@@ -63,7 +63,7 @@ public class ResponseHandler {
     }
 
     public void receivedFileCreateResponse(Document d){
-
+		// TODO when received the response, send the first file byte request
     }
 
     public void receivedFileDeleteRequest(Document d){
