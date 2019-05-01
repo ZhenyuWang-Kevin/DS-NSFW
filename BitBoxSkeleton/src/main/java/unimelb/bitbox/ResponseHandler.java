@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 public class ResponseHandler {
     private static Logger log = Logger.getLogger(ResponseHandler.class.getName());
-    public static FileSystemManager fManager;
+    private static FileSystemManager fManager;
     private Connection connection;
     private static long maximumBlockSize = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
     private int maximumRequestResend;
@@ -28,7 +28,7 @@ public class ResponseHandler {
     }
 
     public void receivedFileCreateRequest(Document d){
-        String pathName = d.getString("pathName");
+		String pathName = d.getString("pathName");
 		Document desc = (Document)d.get("fileDescriptor");
 		FileSystemManager.FileDescriptor fDesc =
 				fManager.new FileDescriptor(desc.getLong("lastModified"),desc.getString("md5"),desc.getLong("fileSize"));
@@ -63,6 +63,7 @@ public class ResponseHandler {
     }
 
     public void receivedFileCreateResponse(Document d){
+
     }
 
     public void receivedFileDeleteRequest(Document d){
@@ -83,7 +84,7 @@ public class ResponseHandler {
 					
 					
 				}else {
-					//there was a problem deleting the file
+					//pathname does not exist
 					connection.sendCommand(JsonUtils.FILE_DELETE_RESPONSE(fDesc, pathName, "pathname does not exist", false));
 				}
 			} catch (NoSuchAlgorithmException e) {
@@ -104,7 +105,7 @@ public class ResponseHandler {
     public void receivedFileDeleteResponse(Document d){}
 
     public void receivedFileModifyRequest(Document d){
-	    String pathName = d.getString("pathName");
+		String pathName = d.getString("pathName");
 		Document desc = (Document)d.get("fileDescriptor");
 		FileSystemManager.FileDescriptor fDesc =
 				fManager.new FileDescriptor(desc.getLong("lastModified"),desc.getString("md5"),desc.getLong("fileSize"));
@@ -154,23 +155,17 @@ public class ResponseHandler {
     	String pathName = d.getString("pathName");
    	
     	if(fManager.isSafePathName(pathName)) {
-    		try {
-				if(!fManager.checkShortcut(pathName)){
-					//create directory
-					if(fManager.makeDirectory(pathName)) {
-						connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "directory created", true));
-					}else {
-						connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "there was a problem creating the directory", false));
-					
-					}				
+    		//if directory is exist
+			if(!fManager.dirNameExists(pathName)){
+				//create directory
+				if(fManager.makeDirectory(pathName)) {
+					connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "directory created", true));
+				}else {
+					connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "there was a problem creating the directory", false));
+
 				}
-			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				log.warning(e.getMessage());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				log.warning(e.getMessage());
 			}
+
     	}else {
     		//unsafe pathname given
     		connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE(pathName, "unsafe pathname given", false));
@@ -179,33 +174,7 @@ public class ResponseHandler {
     	
     }
 
-    public void receivedDirectoryCreateResponse(Document d){
-    	String pathName = d.getString("pathName");
-   	
-    	if(fManager.isSafePathName(pathName)) {
-    		try {
-				if(!fManager.checkShortcut(pathName)){
-					//create directory
-					if(fManager.makeDirectory(pathName)) {
-						connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "directory created", true));
-					}else {
-						connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "there was a problem creating the directory", false));
-					
-					}				
-				}
-			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				log.warning(e.getMessage());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				log.warning(e.getMessage());
-			}
-    	}else {
-    		//unsafe pathname given
-    		connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE(pathName, "unsafe pathname given", false));
-    		
-    	}
-    }
+    public void receivedDirectoryCreateResponse(Document d){}
 
     public void receivedDirectoryDeleteRequest(Document d){
     	String pathName = d.getString("pathName");
@@ -215,15 +184,15 @@ public class ResponseHandler {
 				if(fManager.checkShortcut(pathName)){
 					//directory has been found and then then try to delete
 					if(fManager.deleteDirectory(pathName)) {
-						connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "directory deleted", true));
+						connection.sendCommand(JsonUtils.DIRECTORY_DELETE_RESPONSE( pathName, "directory deleted", true));
 					}else {
-						connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "there was a problem creating the directory", false));
+						connection.sendCommand(JsonUtils.DIRECTORY_DELETE_RESPONSE( pathName, "there was a problem deleting the directory", false));
 					
 					}
 					
 				}else {
 					//pathname does not exist
-					connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE( pathName, "pathname does not exist", false));
+					connection.sendCommand(JsonUtils.DIRECTORY_DELETE_RESPONSE( pathName, "pathname does not exist", false));
 				}
 			} catch (NoSuchAlgorithmException e) {
 				// TODO Auto-generated catch block
@@ -234,7 +203,7 @@ public class ResponseHandler {
 			}
     	}else {
     		//unsafe pathname given
-    		connection.sendCommand(JsonUtils.DIRECTORY_CREATE_RESPONSE(pathName, "unsafe pathname given", false));
+    		connection.sendCommand(JsonUtils.DIRECTORY_DELETE_RESPONSE(pathName, "unsafe pathname given", false));
     		
     	}
     }
@@ -242,7 +211,7 @@ public class ResponseHandler {
     public void receivedDirectoryDeleteResponse(Document d){}
 
     public void receivedFileBytesRequest(Document d){
-	    // TODO send file byte response according to the request document
+		// TODO send file byte response according to the request document
 
 		synchronized (this){
 			Document desc = (Document) d.get("fileDescriptor");
@@ -256,11 +225,11 @@ public class ResponseHandler {
 				ByteBuffer buf = fManager.readFile(f.md5, d.getLong("position"), d.getLong("length"));
 				String content = base64encodedString(buf);
 
-				//write to the file
-				if (fManager.writeFile(pathName, buf, d.getLong("position"))){
+				//check if file exist
+				if (fManager.fileNameExists(pathName)){
+
 					connection.sendCommand(JsonUtils.FILE_BYTES_RESPONSE(f, pathName, d.getLong("position"), d.getLong("length"), content, "successful read", true));
-					//check if file has been written completely
-					fManager.checkWriteComplete(pathName);
+
 				}else{
 					//if failed cancel file loader and send failure response
 					fManager.cancelFileLoader(pathName);
@@ -272,11 +241,44 @@ public class ResponseHandler {
 			}catch(NoSuchAlgorithmException e){
 				log.warning(e.getMessage());
 			}
+
+
 		}
     }
 
     public void receivedFileBytesResponse(Document d){
 		//TODO handle received byte response from peer
+		synchronized (this){
+			Document desc = (Document) d.get("fileDescriptor");
+			FileSystemManager.FileDescriptor f = fManager.new FileDescriptor(desc.getLong("lastModified"),
+					desc.getString("md5"),
+					desc.getLong("fileSize"));
+
+			String pathName = d.getString("pathName");
+			Boolean status = d.getBoolean("status");
+
+			try {
+				//if successfully read
+				if (status){
+					ByteBuffer buf = fManager.readFile(f.md5, d.getLong("position"), d.getLong("length"));
+					//write to the file
+					if (fManager.writeFile(pathName, buf, d.getLong("position"))){
+						//check if file has been written completely
+						fManager.checkWriteComplete(pathName);
+					}else{
+						//if failed cancel file loader and send failure response
+						fManager.cancelFileLoader(pathName);
+					}
+				}else{
+					//if unsuccessfully read, cancel file loader and send failure response
+					fManager.cancelFileLoader(pathName);
+				}
+			}catch(IOException e){
+				log.warning(e.getMessage());
+			}catch(NoSuchAlgorithmException e){
+				log.warning(e.getMessage());
+			}
+		}
 	}
 
     private String base64encodedString(ByteBuffer buf){
