@@ -162,7 +162,7 @@ public class Connection implements Runnable {
                         t.receive(json);
                     }
                 }
-
+                break;
             case "FILE_CREATE_RESPONSE":
                 // when receive positive response, create thread to handle file transfer
                 if(json.getBoolean("status")){
