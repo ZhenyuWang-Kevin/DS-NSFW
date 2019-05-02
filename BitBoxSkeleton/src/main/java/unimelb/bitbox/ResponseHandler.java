@@ -5,6 +5,7 @@ import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -261,6 +262,7 @@ public class ResponseHandler {
 			String content = d.getString("content");
 
 			try {
+
 					ByteBuffer buf = convertStringToByte(content);
 					//write to the file
 					if (fManager.writeFile(pathName, buf, d.getLong("position"))){
@@ -283,9 +285,10 @@ public class ResponseHandler {
         return Base64.getEncoder().encodeToString(buf.array());
     }
 
+
 	//String to Bytebuffer
     private ByteBuffer convertStringToByte(String content) throws UnsupportedEncodingException {
-		return ByteBuffer.wrap(content.getBytes("utf-8"));
+		return ByteBuffer.wrap(Base64.getDecoder().decode(content));
 	}
 
 
