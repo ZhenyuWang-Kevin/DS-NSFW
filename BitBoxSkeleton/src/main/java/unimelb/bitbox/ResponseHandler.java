@@ -41,6 +41,7 @@ public class ResponseHandler {
 					if(fManager.createFileLoader(pathName,desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"))) {
 						connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
 						connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"),0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
+						// github
 					}else {
 						connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
 					}
