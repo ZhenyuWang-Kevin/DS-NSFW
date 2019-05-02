@@ -40,6 +40,7 @@ public class ResponseHandler {
 					//ensure no file in that path and try to create one
 					if(fManager.createFileLoader(pathName,desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"))) {
 						connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
+						connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"),0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
 					}else {
 						connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
 					}
@@ -64,10 +65,9 @@ public class ResponseHandler {
     }
 
     public void receivedFileCreateResponse(Document d){
-		// TODO when received the response, send the first file byte request
-		Document desc = (Document)d.get("fileDescriptor");
-		FileSystemManager.FileDescriptor fDesc = fManager.new FileDescriptor(desc.getLong("lastModified"), desc.getString("md5"), desc.getLong("fileSize"));
-		connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"),0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
+		//Document desc = (Document)d.get("fileDescriptor");
+		//FileSystemManager.FileDescriptor fDesc = fManager.new FileDescriptor(desc.getLong("lastModified"), desc.getString("md5"), desc.getLong("fileSize"));
+		//connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"),0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
     }
 
     public void receivedFileDeleteRequest(Document d){
