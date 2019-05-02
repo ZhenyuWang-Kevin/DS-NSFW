@@ -214,7 +214,7 @@ public class Connection implements Runnable {
         while (true){
             // receive command
             try {
-                aSocket.setSoTimeout(20*1000);
+                aSocket.setSoTimeout(0);
                 String data = in.readUTF();
                 receiveCommand(JsonUtils.decodeBase64toDocument(data));
             } catch (SocketTimeoutException e) {
