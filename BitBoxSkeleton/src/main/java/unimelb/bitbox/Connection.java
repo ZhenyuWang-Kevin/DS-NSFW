@@ -47,6 +47,7 @@ public class Connection implements Runnable {
         // task type, 0 for receiving file from peer, 1 for sending to peer
         private int taskType;
         private Connection c;
+        private String pathName;
 
         public ByteTransferTask(String f, long fileSize, int type, ResponseHandler rh, Connection c){
             this.fDesc = f;
@@ -59,6 +60,7 @@ public class Connection implements Runnable {
 
         public void receive(Document d){
             this.doc = d;
+            pathName = this.doc.getString("pathName");
         }
 
         public void run(){
@@ -95,6 +97,11 @@ public class Connection implements Runnable {
                         doc = null;
                     }
                 }
+            }
+            try {
+                ResponseHandler.fManager.cancelFileLoader(pathName);
+            } catch(IOException e){
+                log.warning(e.getMessage());
             }
             finished = true;
         }
