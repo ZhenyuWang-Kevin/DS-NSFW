@@ -270,6 +270,7 @@ public class JsonUtils {
      */
     public static String DIRECTORY_CREATE_RESPONSE(String dirPath, String msg, boolean status){
         Document d = new Document();
+        d.append("command", "DIRECTORY_CREATE_RESPONSE");
         d.append("pathName", dirPath);
         d.append("message", msg);
         d.append("status", status);
