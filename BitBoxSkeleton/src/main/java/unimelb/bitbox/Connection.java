@@ -261,7 +261,7 @@ public class Connection implements Runnable {
 
 
         // TODO handles the protocol
-        while (true){
+        while (flagActive){
             synchronized (this) {
                 // receive command
                 try {
@@ -273,6 +273,7 @@ public class Connection implements Runnable {
                 } catch (IOException e) {
                     log.warning(e.getMessage() + this.peerInfo);
                     closeSocket();
+
                 }
             }
         }
@@ -281,6 +282,7 @@ public class Connection implements Runnable {
     // close the socket
     public void closeSocket(){
         try{
+            flagActive = false;
             log.info("Disconnect with " + peerInfo.toString());
             TCPmain.removeConnection(peerInfo.toString());
             if(in != null)

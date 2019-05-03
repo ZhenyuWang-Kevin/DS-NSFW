@@ -41,13 +41,13 @@ public class ResponseHandler {
 					if (!fManager.fileNameExists(pathName,fDesc.md5)) {
 						//ensure no file in that path and try to create one
 						fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"));
-						if (fManager.checkShortcut(pathName)) {
+						if (!fManager.checkShortcut(pathName)) {
 							accept = true;
 							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
 							connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
 							// github
 						} else {
-							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
+							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file exist already, create a copy from local", false));
 						}
 
 					} else {
