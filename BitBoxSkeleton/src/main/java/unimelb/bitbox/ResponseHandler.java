@@ -82,27 +82,20 @@ public class ResponseHandler {
 			Document desc = (Document) d.get("fileDescriptor");
 			FileSystemManager.FileDescriptor fDesc =
 					fManager.new FileDescriptor(desc.getLong("lastModified"), desc.getString("md5"), desc.getLong("fileSize"));
-
 			if (fManager.isSafePathName(pathName)) {
 				try {
-					if (fManager.checkShortcut(pathName)) {
+					if (fManager.fileNameExists(pathName)) {
 						//file has been found and try to delete
 						if (fManager.deleteFile(pathName, desc.getLong("lastModified"), desc.getString("md5"))) {
 							connection.sendCommand(JsonUtils.FILE_DELETE_RESPONSE(fDesc, pathName, "file deleted", true));
 						} else {
 							connection.sendCommand(JsonUtils.FILE_DELETE_RESPONSE(fDesc, pathName, "there was a problem deleting the file", false));
 						}
-
-
 					} else {
 						//pathname does not exist
 						connection.sendCommand(JsonUtils.FILE_DELETE_RESPONSE(fDesc, pathName, "pathname does not exist", false));
 					}
-				} catch (NoSuchAlgorithmException e) {
-					// TODO Auto-generated catch block
-					log.warning(e.getMessage());
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
+				} catch(Exception e){
 					log.warning(e.getMessage());
 				}
 			} else {

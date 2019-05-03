@@ -99,7 +99,7 @@ public class Connection implements Runnable {
             }
             try{
                 boolean complete = ResponseHandler.fManager.checkWriteComplete(pathName);
-                log.info("file write complete" + complete);
+                log.info("(This is debug info only)file write complete " + complete);
             } catch (NoSuchAlgorithmException e) {
                 log.warning(e.getMessage());
             } catch (IOException e) {
