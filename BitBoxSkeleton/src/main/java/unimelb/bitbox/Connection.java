@@ -93,11 +93,8 @@ public class Connection implements Runnable {
                     }
                 }
             }
-            boolean flag = true;
-            while(flag) {
-                try {
+                try{
                     ResponseHandler.fManager.checkWriteComplete(pathName);
-                    flag = false;
                 } catch (NoSuchAlgorithmException e) {
                     log.warning(e.getMessage());
                 } catch (IOException e) {
@@ -105,7 +102,6 @@ public class Connection implements Runnable {
                 }
                 finished = true;
             }
-        }
     }
 
 
