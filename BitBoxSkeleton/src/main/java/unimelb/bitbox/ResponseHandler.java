@@ -53,17 +53,11 @@ public class ResponseHandler {
 					} else if (!fManager.fileNameExists(pathName, fDesc.md5)){
 						//pathname already exists
 						// check for lastModified value
-						if(fManager.deleteFile(pathName, fDesc.lastModified, fDesc.md5)) {
-							fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"));
-
-							if (!fManager.checkShortcut(pathName)) {
-								accept = true;
-								connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
-								connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
-								// github
-							} else {
-								connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
-							}
+						if(fManager.modifyFileLoader(pathName, fDesc.md5, fDesc.lastModified)) {
+							log.info("file ready for modified");
+							accept = true;
+							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
+							connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
 						}
 						else {
 
@@ -85,10 +79,8 @@ public class ResponseHandler {
 		return accept;
     }
 
-    public void receivedFileCreateResponse(Document d){
-		//Document desc = (Document)d.get("fileDescriptor");
-		//FileSystemManager.FileDescriptor fDesc = fManager.new FileDescriptor(desc.getLong("lastModified"), desc.getString("md5"), desc.getLong("fileSize"));
-		//connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"),0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
+    public boolean receivedFileCreateResponse(Document d){
+    	return d.getBoolean("status");
     }
 
     public void receivedFileDeleteRequest(Document d){
@@ -124,7 +116,8 @@ public class ResponseHandler {
 
     public void receivedFileDeleteResponse(Document d){}
 
-    public void receivedFileModifyRequest(Document d){
+    public boolean receivedFileModifyRequest(Document d){
+    	boolean accept = false;
     	synchronized (this) {
 			String pathName = d.getString("pathName");
 			Document desc = (Document) d.get("fileDescriptor");
@@ -138,19 +131,14 @@ public class ResponseHandler {
 					//check if file already exists with matching content
 					if (!fManager.fileNameExists(pathName, desc.getString("md5"))) {
 						try {
-							if (fManager.checkShortcut(pathName)) {
-								//ensure file in that path and call modify loader
-								if (fManager.modifyFileLoader(pathName, desc.getString("md5"), desc.getLong("lastModified"))) {
-									connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "file loader ready", true));
-								} else {
-									connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "there was a problem modifying the file", false));
-								}
+							if (fManager.modifyFileLoader(pathName, desc.getString("md5"), desc.getLong("lastModified"))) {
+								accept = true;
+								connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "file loader ready", true));
+								connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
 							} else {
-								connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "pathname does not exist", false));
+								connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "there was a problem modifying the file", false));
 							}
-						} catch (NoSuchAlgorithmException e) {
-							// TODO Auto-generated catch block
-							log.warning(e.getMessage());
+
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							log.warning(e.getMessage());
@@ -158,6 +146,8 @@ public class ResponseHandler {
 					} else {
 						connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "file already exists with matching content", false));
 					}
+				} else {
+					connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "pathname does not exist", false));
 				}
 
 			} else {
@@ -166,9 +156,12 @@ public class ResponseHandler {
 
 			}
 		}
+
+		return accept;
     }
 
-    public void receivedFileModifyResponse(Document d){
+    public boolean receivedFileModifyResponse(Document d){
+		return d.getBoolean("status");
     }
 
     public void receivedDirectoryCreateRequest(Document d){
