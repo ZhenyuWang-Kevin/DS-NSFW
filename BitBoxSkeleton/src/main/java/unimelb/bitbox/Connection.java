@@ -127,17 +127,18 @@ public class Connection implements Runnable {
                 // TODO check for whether file needs transfer
                 //  if yes, send a response, then create a new thread
                 synchronized (this) {
-                    fdesc = (Document) json.get("fileDescriptor");
-                    // if there is no thread for this key
-                    if (!threadManager.containsKey(fdesc.toJson())) {
-                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
-                        executor.execute(threadManager.get(fdesc.toJson()));
-                    } else if (threadManager.get(fdesc.toJson()).finished) {
-                        threadManager.remove(fdesc.toJson());
-                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
-                        executor.execute(threadManager.get(fdesc.toJson()));
+                    if(rh.receivedFileCreateRequest(json)) {
+                        fdesc = (Document) json.get("fileDescriptor");
+                        // if there is no thread for this key
+                        if (!threadManager.containsKey(fdesc.toJson())) {
+                            threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
+                            executor.execute(threadManager.get(fdesc.toJson()));
+                        } else if (threadManager.get(fdesc.toJson()).finished) {
+                            threadManager.remove(fdesc.toJson());
+                            threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
+                            executor.execute(threadManager.get(fdesc.toJson()));
+                        }
                     }
-                    rh.receivedFileCreateRequest(json);
                 }
                 break;
 

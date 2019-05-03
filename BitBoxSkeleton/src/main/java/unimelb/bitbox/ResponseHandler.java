@@ -28,7 +28,8 @@ public class ResponseHandler {
         this.maximumRequestResend = 3;
     }
 
-    public void receivedFileCreateRequest(Document d){
+    public boolean receivedFileCreateRequest(Document d){
+    	boolean accept = false;
     	synchronized (this) {
 			String pathName = d.getString("pathName");
 			Document desc = (Document) d.get("fileDescriptor");
@@ -40,6 +41,7 @@ public class ResponseHandler {
 					if (!fManager.checkShortcut(pathName)) {
 						//ensure no file in that path and try to create one
 						if (fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"))) {
+							accept = true;
 							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
 							connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
 							// github
@@ -65,6 +67,7 @@ public class ResponseHandler {
 
 			}
 		}
+		return accept;
     }
 
     public void receivedFileCreateResponse(Document d){
