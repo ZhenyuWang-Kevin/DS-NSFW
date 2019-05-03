@@ -55,6 +55,7 @@ public class TCPMain {
         }
     };
 
+
     public TCPMain(){
         // initalize the event buffer
         eventBuffer = new LinkedList<>();
@@ -101,6 +102,15 @@ public class TCPMain {
         return Incomming.size() < Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"))
                 ? false :
                 true;
+    }
+
+    public void removeConnection(String key){
+        if(Incomming.containsKey(key)){
+            Incomming.remove(key);
+        }
+        else if(Outgoing.containsKey(key)){
+            Outgoing.remove(key);
+        }
     }
 
     public ArrayList<String> getAllConnections(){

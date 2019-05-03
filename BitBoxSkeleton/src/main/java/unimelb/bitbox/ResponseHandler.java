@@ -38,9 +38,10 @@ public class ResponseHandler {
 
 			if (fManager.isSafePathName(pathName)) {
 				try {
-					if (!fManager.checkShortcut(pathName)) {
+					if (!fManager.fileNameExists(pathName,fDesc.md5)) {
 						//ensure no file in that path and try to create one
-						if (fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"))) {
+						fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"));
+						if (fManager.checkShortcut(pathName)) {
 							accept = true;
 							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
 							connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
@@ -49,10 +50,25 @@ public class ResponseHandler {
 							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
 						}
 
-
 					} else {
 						//pathname already exists
-						connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "pathname already exists", false));
+						// check for lastModified value
+						if(!fManager.deleteFile(pathName, fDesc.lastModified, fDesc.md5)) {
+							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "pathname already exists", false));
+						}
+						else {
+
+							fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"));
+
+							if (fManager.checkShortcut(pathName)) {
+								accept = true;
+								connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "file loader ready", true));
+								connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
+								// github
+							} else {
+								connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
+							}
+						}
 					}
 				} catch (NoSuchAlgorithmException e) {
 					// TODO Auto-generated catch block
