@@ -53,11 +53,7 @@ public class ResponseHandler {
 					} else if (!fManager.fileNameExists(pathName, fDesc.md5)){
 						//pathname already exists
 						// check for lastModified value
-						if(!fManager.deleteFile(pathName, fDesc.lastModified, fDesc.md5)) {
-							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "pathname already exists", false));
-						}
-						else {
-
+						if(fManager.deleteFile(pathName, fDesc.lastModified, fDesc.md5)) {
 							fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"), desc.getLong("lastModified"));
 
 							if (!fManager.checkShortcut(pathName)) {
@@ -68,6 +64,10 @@ public class ResponseHandler {
 							} else {
 								connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "there was a problem creating the file", false));
 							}
+						}
+						else {
+
+							connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "pathname already exists", false));
 						}
 					}
 				} catch (NoSuchAlgorithmException e) {
