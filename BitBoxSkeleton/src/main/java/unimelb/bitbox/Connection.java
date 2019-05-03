@@ -284,13 +284,12 @@ public class Connection implements Runnable {
     }
 
     public void sendCommand(String base64Str) {
-        synchronized (this) {
             try {
+                log.info("sending command " + base64Str);
                 out.writeUTF(base64Str);
             } catch (IOException e) {
                 log.warning(e.getMessage());
             }
-        }
     }
     // set the flag for byte transfer allowance
     public void setByteRequestAvailability(boolean val){

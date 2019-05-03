@@ -41,9 +41,10 @@ public class TCPMain {
         public void run(){
             while(communicationActive){
                 // when eventBuffer is not empty, broadcast the command to all connected peers
-                while (eventBuffer.size() > 0) {
-                    synchronized (this) {
+                synchronized (this) {
+                    while (eventBuffer.size() > 0) {
                         FileSystemEvent event = eventBuffer.poll();
+                        log.info("broadcast command " + event.event);
                         String command = translateEventToCommand(event);
                         Incomming.forEach((key, value) -> value.sendCommand(command));
                         Outgoing.forEach((key, value) -> value.sendCommand(command));
