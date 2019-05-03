@@ -80,7 +80,6 @@ public class ResponseHandler {
 			} else {
 				//unsafe pathname given
 				connection.sendCommand(JsonUtils.FILE_CREATE_RESPONSE(fDesc, pathName, "unsafe pathname given", false));
-
 			}
 		}
 		return accept;
