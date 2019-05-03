@@ -223,47 +223,49 @@ public class Connection implements Runnable {
     }
 
     public void run() {
-        log.info("Connection established with " + peerInfo.toString());
-        // TODO handles synchronized events
-        ArrayList<FileSystemManager.FileSystemEvent> events = ResponseHandler.fManager.generateSyncEvents();
+        synchronized (this) {
+            log.info("Connection established with " + peerInfo.toString());
+            // TODO handles synchronized events
+            ArrayList<FileSystemManager.FileSystemEvent> events = ResponseHandler.fManager.generateSyncEvents();
 
-        for (FileSystemManager.FileSystemEvent e : events){
-            switch(e.event){
-                case FILE_CREATE:
-                    sendCommand(JsonUtils.FILE_CREATE_REQUEST(e.fileDescriptor,e.pathName));
-                    break;
-                case FILE_DELETE:
-                    sendCommand(JsonUtils.FILE_DELETE_REQUEST(e.fileDescriptor,e.pathName));
-                    break;
-                case FILE_MODIFY:
-                    sendCommand(JsonUtils.FILE_MODIFY_REQUEST(e.fileDescriptor,e.pathName));
-                    break;
-                case DIRECTORY_CREATE:
-                    sendCommand(JsonUtils.DIRECTORY_CREATE_REQUEST(e.pathName));
-                    break;
-                case DIRECTORY_DELETE:
-                    sendCommand(JsonUtils.DIRECTORY_DELETE_REQUEST(e.pathName));
-                    break;
+            for (FileSystemManager.FileSystemEvent e : events) {
+                switch (e.event) {
+                    case FILE_CREATE:
+                        sendCommand(JsonUtils.FILE_CREATE_REQUEST(e.fileDescriptor, e.pathName));
+                        break;
+                    case FILE_DELETE:
+                        sendCommand(JsonUtils.FILE_DELETE_REQUEST(e.fileDescriptor, e.pathName));
+                        break;
+                    case FILE_MODIFY:
+                        sendCommand(JsonUtils.FILE_MODIFY_REQUEST(e.fileDescriptor, e.pathName));
+                        break;
+                    case DIRECTORY_CREATE:
+                        sendCommand(JsonUtils.DIRECTORY_CREATE_REQUEST(e.pathName));
+                        break;
+                    case DIRECTORY_DELETE:
+                        sendCommand(JsonUtils.DIRECTORY_DELETE_REQUEST(e.pathName));
+                        break;
+                }
             }
-        }
 
 
-        // TODO handles the protocol
-        while (true){
-            // receive command
-            try {
-                aSocket.setSoTimeout(0);
-                String data = in.readUTF();
-                receiveCommand(JsonUtils.decodeBase64toDocument(data));
-            } catch (SocketTimeoutException e) {
-                // check for finished thread every 20sec, and remove any finished task class.
-                threadManager.forEach((key,value) -> {
-                    if(value.finished){
-                        threadManager.remove(key);
-                    }
-                });
-            } catch (IOException e){
-                log.warning(e.getMessage() + this.peerInfo);
+            // TODO handles the protocol
+            while (true) {
+                // receive command
+                try {
+                    aSocket.setSoTimeout(0);
+                    String data = in.readUTF();
+                    receiveCommand(JsonUtils.decodeBase64toDocument(data));
+                } catch (SocketTimeoutException e) {
+                    // check for finished thread every 20sec, and remove any finished task class.
+                    threadManager.forEach((key, value) -> {
+                        if (value.finished) {
+                            threadManager.remove(key);
+                        }
+                    });
+                } catch (IOException e) {
+                    log.warning(e.getMessage() + this.peerInfo);
+                }
             }
         }
     }
@@ -280,10 +282,12 @@ public class Connection implements Runnable {
     }
 
     public void sendCommand(String base64Str){
-        try{
-            out.writeUTF(base64Str);
-        }catch(IOException e){
-            log.warning(e.getMessage());
+        synchronized (this) {
+            try {
+                out.writeUTF(base64Str);
+            } catch (IOException e) {
+                log.warning(e.getMessage());
+            }
         }
     }
 
