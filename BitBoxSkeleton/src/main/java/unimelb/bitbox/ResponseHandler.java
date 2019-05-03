@@ -189,7 +189,7 @@ public class ResponseHandler {
 
 			if (fManager.isSafePathName(pathName)) {
 				try {
-					if (fManager.checkShortcut(pathName)) {
+					if (fManager.dirNameExists(pathName)) {
 						//directory has been found and then then try to delete
 						if (fManager.deleteDirectory(pathName)) {
 							connection.sendCommand(JsonUtils.DIRECTORY_DELETE_RESPONSE(pathName, "directory deleted", true));
@@ -202,11 +202,7 @@ public class ResponseHandler {
 						//pathname does not exist
 						connection.sendCommand(JsonUtils.DIRECTORY_DELETE_RESPONSE(pathName, "pathname does not exist", false));
 					}
-				} catch (NoSuchAlgorithmException e) {
-					// TODO Auto-generated catch block
-					log.warning(e.getMessage());
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
+				} catch (Exception e){
 					log.warning(e.getMessage());
 				}
 			} else {
