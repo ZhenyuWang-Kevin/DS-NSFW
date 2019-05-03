@@ -15,6 +15,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	protected FileSystemManager fileSystemManager;
 	private float timer;
 	private TCPMain TCP;
+	private int syncTIme = Integer.parseInt(Configuration.getConfigurationValue("syncInterval"));
 
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
@@ -30,7 +31,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		// create a timer to count for sync events
 		while(true){
 			long start = System.currentTimeMillis();
-			if(timer >= 600*1000){
+			if(timer >= syncTIme*1000){
 				ArrayList<FileSystemEvent> events = fileSystemManager.generateSyncEvents();
 
 				for(FileSystemEvent e:events){

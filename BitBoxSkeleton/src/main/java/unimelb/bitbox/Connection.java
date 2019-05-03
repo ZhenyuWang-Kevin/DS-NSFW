@@ -7,6 +7,7 @@ import unimelb.bitbox.util.HostPort;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -364,7 +365,7 @@ public class Connection implements Runnable {
 
                     // send Handshake request to other peers
                     out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-
+                    aSocket.setSoTimeout(20*1000);
                     String data = in.readUTF();
                     Document d = JsonUtils.decodeBase64toDocument(data);
 
@@ -382,7 +383,6 @@ public class Connection implements Runnable {
                     }
                 } catch (IOException e) {
                     log.warning(e.getMessage() + " " + peer.toString());
-                    closeSocket();
                 }
             }
         }
@@ -401,7 +401,7 @@ public class Connection implements Runnable {
 
             // send Handshake request to other peers
             out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-
+            aSocket.setSoTimeout(20*1000);
             String data = in.readUTF();
             Document d = JsonUtils.decodeBase64toDocument(data);
 
@@ -468,9 +468,7 @@ public class Connection implements Runnable {
                     flagActive = false;
                     // not available, stop the connection
                     out.writeUTF(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
-                    in.close();
-                    out.close();
-                    aSocket.close();
+                    closeSocket();
                 }
             }
         } catch(IOException e){
