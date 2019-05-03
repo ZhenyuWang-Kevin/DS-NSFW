@@ -218,7 +218,6 @@ public class ResponseHandler {
     public void receivedFileBytesRequest(Document d){
 		// TODO send file byte response according to the request document
 
-		synchronized (fManager){
 			Document desc = (Document) d.get("fileDescriptor");
 			FileSystemManager.FileDescriptor f = fManager.new FileDescriptor(desc.getLong("lastModified"),
 					desc.getString("md5"),
@@ -246,14 +245,10 @@ public class ResponseHandler {
 			}catch(NoSuchAlgorithmException e){
 				log.warning(e.getMessage());
 			}
-
-
-		}
     }
 
     public void receivedFileBytesResponse(Document d){
 		//TODO handle received byte response from peer
-		synchronized (fManager){
 			Document desc = (Document) d.get("fileDescriptor");
 			FileSystemManager.FileDescriptor f = fManager.new FileDescriptor(desc.getLong("lastModified"),
 					desc.getString("md5"),
@@ -275,7 +270,6 @@ public class ResponseHandler {
 			}catch(IOException e){
 				log.warning(e.getMessage());
 			}
-		}
 	}
 
 	//ByteBuffer to String

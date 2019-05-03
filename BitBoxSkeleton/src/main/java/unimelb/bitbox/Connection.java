@@ -17,6 +17,7 @@ import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
@@ -69,9 +70,7 @@ public class Connection implements Runnable {
                 if(doc != null) {
                     if(taskType == 0) {
                         if (doc.getLong("position") == positionTracker) {
-                            synchronized (rh){
                                 rh.receivedFileBytesResponse(this.doc);
-                            }
                         }
                         remainingFileSize -= doc.getLong("length");
                         positionTracker += doc.getLong("length");
@@ -79,17 +78,12 @@ public class Connection implements Runnable {
                             // TODO send next byte request
                             Document fD = (Document)doc.get("fileDescriptor");
                             FileSystemManager.FileDescriptor fDescriptor= ResponseHandler.fManager.new FileDescriptor(fD.getLong("lastModified"), fD.getString("md5"), fD.getLong("fileSize"));
-                            synchronized (this){
                                 c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor,doc.getString("pathName"), positionTracker, Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
-                            }
                         }
                         doc = null;
                     }
                     else if(taskType == 1){
-                        synchronized (rh)
-                        {
                             rh.receivedFileBytesRequest(this.doc);
-                        }
                         // Only update the remaining fileSize and position Tracker when two peers position are synchronized
                         if(doc.getLong("position") == positionTracker){
                             remainingFileSize -= doc.getLong("length");
@@ -99,14 +93,18 @@ public class Connection implements Runnable {
                     }
                 }
             }
-            try {
+            boolean flag = true;
+            while(flag) {
+                try {
                     ResponseHandler.fManager.checkWriteComplete(pathName);
-            } catch(NoSuchAlgorithmException e){
-                log.warning(e.getMessage());
-            } catch(IOException e){
-                log.warning(e.getMessage());
+                    flag = false;
+                } catch (NoSuchAlgorithmException e) {
+                    log.warning(e.getMessage());
+                } catch (IOException e) {
+                    log.warning(e.getMessage());
+                }
+                finished = true;
             }
-            finished = true;
         }
     }
 
@@ -159,19 +157,15 @@ public class Connection implements Runnable {
             case "FILE_BYTES_REQUEST":
                 fdesc = (Document)json.get("fileDescriptor");
                 if(threadManager.containsKey(fdesc.toJson())){
-                    synchronized (threadManager) {
                         ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
-                    }
                 }
                 break;
             case "FILE_BYTES_RESPONSE":
                 fdesc = (Document)json.get("fileDescriptor");
                 if(threadManager.containsKey(fdesc.toJson())){
-                    synchronized (threadManager) {
                         ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
-                    }
                 }
                 break;
             case "FILE_CREATE_RESPONSE":
