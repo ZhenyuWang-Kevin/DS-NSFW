@@ -31,6 +31,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		// create a timer to count for sync events
 		while(true){
 			long start = System.currentTimeMillis();
+			//log.info("time: " + timer/1000);
 			if(timer >= syncTIme*1000){
 				ArrayList<FileSystemEvent> events = fileSystemManager.generateSyncEvents();
 

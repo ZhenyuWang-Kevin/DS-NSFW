@@ -412,7 +412,7 @@ public class Connection implements Runnable {
             if(d.getString("command").equals("HANDSHAKE_RESPONSE")){
                 peerInfo = new HostPort((Document) d.get("hostPort"));
                 flagActive = true;
-
+                aSocket.setSoTimeout(0);
                 Thread t = new Thread(this);
                 t.start();
             }
