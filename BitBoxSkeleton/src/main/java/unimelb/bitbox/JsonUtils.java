@@ -164,7 +164,7 @@ public class JsonUtils {
                                              String content, String msg,
                                              boolean status) {
         Document d = new Document();
-        d.append("command", " FILE_BTYES_RESPONSE");
+        d.append("command", "FILE_BYTES_RESPONSE");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName",path);
         d.append("position", position);
