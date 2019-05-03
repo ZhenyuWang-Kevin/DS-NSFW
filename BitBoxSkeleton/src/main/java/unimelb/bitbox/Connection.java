@@ -46,27 +46,34 @@ public class Connection implements Runnable {
         private int taskType;
         private Connection c;
         private String pathName;
+        private long timeOutThreshold;
+        private long timer;
 
-        public ByteTransferTask(String key, long fileSize, int type, ResponseHandler rh, Connection c){
+        public ByteTransferTask(String key, long fileSize, int type, ResponseHandler rh, Connection c, String pathName){
             this.key = key;
             this.doc = null;
             this.remainingFileSize = fileSize;
+            this.pathName = pathName;
             taskType = type;
             this.rh = rh;
             this.c = c;
+            this.timeOutThreshold = 30*1000;
+            this.timer = 0;
         }
 
         public void receive(Document d){
             synchronized (this) {
                 this.doc = d;
-                pathName = this.doc.getString("pathName");
             }
         }
 
         public void run(){
+
             while(remainingFileSize > 0){
+                long start = System.currentTimeMillis();
                 synchronized (this) {
                     if (doc != null) {
+                        timer = 0;
                         log.info("file size remaining: " + remainingFileSize);
                         if (taskType == 0) {
                             if (doc.getLong("position") == positionTracker) {
@@ -92,10 +99,20 @@ public class Connection implements Runnable {
                         }
                     }
                 }
+                this.timer += System.currentTimeMillis() - start;
+                if(this.timer > this.timeOutThreshold){
+                    log.warning("File transfer timeout: " + pathName);
+                    try {
+                        ResponseHandler.fManager.cancelFileLoader(pathName);
+                    }catch(IOException e){
+                        log.warning(e.getMessage());
+                    }
+                    break;
+                }
             }
             try{
                 boolean complete = ResponseHandler.fManager.checkWriteComplete(pathName);
-                log.info("(This is debug info only)file write complete " + complete);
+                log.info(pathName + " write completion: " + complete);
             } catch (NoSuchAlgorithmException e) {
                 log.warning(e.getMessage());
             } catch (IOException e) {
@@ -141,11 +158,11 @@ public class Connection implements Runnable {
                         fdesc = (Document) json.get("fileDescriptor");
                         // if there is no thread for this key
                         if (!threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
-                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
+                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                         } else if (threadManager.get(fdesc.toJson()).finished) {
                             threadManager.remove(fdesc.toJson() + json.getString("namePath"));
-                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
+                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                         }
                     }
@@ -162,11 +179,11 @@ public class Connection implements Runnable {
                         fdesc = (Document) json.get("fileDescriptor");
                         // if there is no thread for this key
                         if (!threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
-                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
+                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                         } else if (threadManager.get(fdesc.toJson()).finished) {
                             threadManager.remove(fdesc.toJson() + json.getString("namePath"));
-                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
+                            threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                         }
                     }
@@ -207,11 +224,11 @@ public class Connection implements Runnable {
                             fdesc = (Document) json.get("fileDescriptor");
                             // if there is no thread for this key
                             if (!threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
-                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this));
+                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("namePath")));
                                 executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                             } else if (threadManager.get(fdesc.toJson() + json.getString("namePath")).finished) {
                                 threadManager.remove(fdesc.toJson() + json.getString("namePath"));
-                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this));
+                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("namePath")));
                                 executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                             }
                         }
@@ -231,11 +248,11 @@ public class Connection implements Runnable {
                             fdesc = (Document) json.get("fileDescriptor");
                             // if there is no thread for this key
                             if (!threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
-                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this));
+                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("namePath")));
                                 executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                             } else if (threadManager.get(fdesc.toJson() + json.getString("namePath")).finished) {
                                 threadManager.remove(fdesc.toJson() + json.getString("namePath"));
-                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this));
+                                threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("namePath")));
                                 executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
                             }
                         }
