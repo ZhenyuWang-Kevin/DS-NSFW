@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
+
 public class Connection implements Runnable {
 
 
@@ -210,6 +211,30 @@ public class Connection implements Runnable {
 
     public void run() {
         log.info("Connection established with " + peerInfo.toString());
+        // TODO handles synchronized events
+        ArrayList<FileSystemManager.FileSystemEvent> events = ResponseHandler.fManager.generateSyncEvents();
+
+        for (FileSystemManager.FileSystemEvent e : events){
+            switch(e.event){
+                case FILE_CREATE:
+                    sendCommand(JsonUtils.FILE_CREATE_REQUEST(e.fileDescriptor,e.pathName));
+                    break;
+                case FILE_DELETE:
+                    sendCommand(JsonUtils.FILE_DELETE_REQUEST(e.fileDescriptor,e.pathName));
+                    break;
+                case FILE_MODIFY:
+                    sendCommand(JsonUtils.FILE_MODIFY_REQUEST(e.fileDescriptor,e.pathName));
+                    break;
+                case DIRECTORY_CREATE:
+                    sendCommand(JsonUtils.DIRECTORY_CREATE_REQUEST(e.pathName));
+                    break;
+                case DIRECTORY_DELETE:
+                    sendCommand(JsonUtils.DIRECTORY_DELETE_REQUEST(e.pathName));
+                    break;
+            }
+        }
+
+
         // TODO handles the protocol
         while (true){
             // receive command
