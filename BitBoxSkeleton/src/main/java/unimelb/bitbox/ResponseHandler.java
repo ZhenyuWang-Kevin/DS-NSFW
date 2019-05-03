@@ -218,7 +218,6 @@ public class ResponseHandler {
     public void receivedFileBytesRequest(Document d){
 		// TODO send file byte response according to the request document
 
-		synchronized (this){
 			Document desc = (Document) d.get("fileDescriptor");
 			FileSystemManager.FileDescriptor f = fManager.new FileDescriptor(desc.getLong("lastModified"),
 					desc.getString("md5"),
@@ -246,14 +245,10 @@ public class ResponseHandler {
 			}catch(NoSuchAlgorithmException e){
 				log.warning(e.getMessage());
 			}
-
-
-		}
     }
 
     public void receivedFileBytesResponse(Document d){
 		//TODO handle received byte response from peer
-		synchronized (this){
 			Document desc = (Document) d.get("fileDescriptor");
 			FileSystemManager.FileDescriptor f = fManager.new FileDescriptor(desc.getLong("lastModified"),
 					desc.getString("md5"),
@@ -266,19 +261,15 @@ public class ResponseHandler {
 
 					ByteBuffer buf = convertStringToByte(content);
 					//write to the file
-					if (fManager.writeFile(pathName, buf, d.getLong("position"))){
-						//check if file has been written completely
-						fManager.checkWriteComplete(pathName);
-					}else{
-						//if failed cancel file loader and send failure response
-						fManager.cancelFileLoader(pathName);
-					}
+					if (!fManager.writeFile(pathName, buf, d.getLong("position"))) {
+                        //check if file has been written completely
+                        //fManager.checkWriteComplete(pathName);
+                        //if failed cancel file loader and send failure response
+                        fManager.cancelFileLoader(pathName);
+                    }
 			}catch(IOException e){
 				log.warning(e.getMessage());
-			}catch(NoSuchAlgorithmException e){
-				log.warning(e.getMessage());
 			}
-		}
 	}
 
 	//ByteBuffer to String

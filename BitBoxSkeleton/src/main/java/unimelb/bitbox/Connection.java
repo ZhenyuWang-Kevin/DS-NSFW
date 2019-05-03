@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -16,6 +17,7 @@ import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
@@ -47,6 +49,7 @@ public class Connection implements Runnable {
         // task type, 0 for receiving file from peer, 1 for sending to peer
         private int taskType;
         private Connection c;
+        private String pathName;
 
         public ByteTransferTask(String f, long fileSize, int type, ResponseHandler rh, Connection c){
             this.fDesc = f;
@@ -59,6 +62,7 @@ public class Connection implements Runnable {
 
         public void receive(Document d){
             this.doc = d;
+            pathName = this.doc.getString("pathName");
         }
 
         public void run(){
@@ -66,9 +70,7 @@ public class Connection implements Runnable {
                 if(doc != null) {
                     if(taskType == 0) {
                         if (doc.getLong("position") == positionTracker) {
-                            synchronized (this){
                                 rh.receivedFileBytesResponse(this.doc);
-                            }
                         }
                         remainingFileSize -= doc.getLong("length");
                         positionTracker += doc.getLong("length");
@@ -76,17 +78,12 @@ public class Connection implements Runnable {
                             // TODO send next byte request
                             Document fD = (Document)doc.get("fileDescriptor");
                             FileSystemManager.FileDescriptor fDescriptor= ResponseHandler.fManager.new FileDescriptor(fD.getLong("lastModified"), fD.getString("md5"), fD.getLong("fileSize"));
-                            synchronized (this){
                                 c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor,doc.getString("pathName"), positionTracker, Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
-                            }
                         }
                         doc = null;
                     }
                     else if(taskType == 1){
-                        synchronized (this)
-                        {
                             rh.receivedFileBytesRequest(this.doc);
-                        }
                         // Only update the remaining fileSize and position Tracker when two peers position are synchronized
                         if(doc.getLong("position") == positionTracker){
                             remainingFileSize -= doc.getLong("length");
@@ -96,7 +93,18 @@ public class Connection implements Runnable {
                     }
                 }
             }
-            finished = true;
+            boolean flag = true;
+            while(flag) {
+                try {
+                    ResponseHandler.fManager.checkWriteComplete(pathName);
+                    flag = false;
+                } catch (NoSuchAlgorithmException e) {
+                    log.warning(e.getMessage());
+                } catch (IOException e) {
+                    log.warning(e.getMessage());
+                }
+                finished = true;
+            }
         }
     }
 
@@ -119,12 +127,12 @@ public class Connection implements Runnable {
                 fdesc = (Document)json.get("fileDescriptor");
                 // if there is no thread for this key
                 if(!threadManager.containsKey(fdesc.toJson())){
-                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"), 0, this.rh, this));
+                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
                     executor.execute(threadManager.get(fdesc.toJson()));
                 }
                 else if(threadManager.get(fdesc.toJson()).finished){
                     threadManager.remove(fdesc.toJson());
-                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"), 0, this.rh, this));
+                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
                     executor.execute(threadManager.get(fdesc.toJson()));
                 }
                 rh.receivedFileCreateRequest(json);
@@ -149,19 +157,15 @@ public class Connection implements Runnable {
             case "FILE_BYTES_REQUEST":
                 fdesc = (Document)json.get("fileDescriptor");
                 if(threadManager.containsKey(fdesc.toJson())){
-                    synchronized (this) {
                         ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
-                    }
                 }
                 break;
             case "FILE_BYTES_RESPONSE":
                 fdesc = (Document)json.get("fileDescriptor");
                 if(threadManager.containsKey(fdesc.toJson())){
-                    synchronized (this) {
                         ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
-                    }
                 }
                 break;
             case "FILE_CREATE_RESPONSE":
@@ -170,12 +174,12 @@ public class Connection implements Runnable {
                     fdesc = (Document)json.get("fileDescriptor");
                     // if there is no thread for this key
                     if(!threadManager.containsKey(fdesc.toJson())){
-                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"), 1,this.rh, this));
+                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1,this.rh, this));
                         executor.execute(threadManager.get(fdesc.toJson()));
                     }
                     else if(threadManager.get(fdesc.toJson()).finished){
                         threadManager.remove(fdesc.toJson());
-                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("fileSize"),1,this.rh, this));
+                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("namePath"),1,this.rh, this));
                         executor.execute(threadManager.get(fdesc.toJson()));
                     }
                 }
