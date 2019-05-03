@@ -302,8 +302,14 @@ public class Connection implements Runnable {
                 try {
 
                     String data = in.readLine();
-                    log.info("receiving data: " + data);
-                    receiveCommand(JsonUtils.decodeBase64toDocument(data));
+                    if(data == null){
+                        log.info("disconnect with " + peerInfo.toString());
+                        closeSocket();
+                        flagActive = false;
+                    }else {
+                        log.info("receiving data: " + data);
+                        receiveCommand(JsonUtils.decodeBase64toDocument(data));
+                    }
 
                 } catch (IOException e) {
                     log.warning(e.getMessage() + this.peerInfo);
@@ -333,7 +339,7 @@ public class Connection implements Runnable {
 
     public void sendCommand(String base64Str) {
             try {
-                log.info("sending command " + base64Str);
+               // log.info("sending command " + base64Str);
                 out.write(base64Str);
                 out.newLine();
                 out.flush();
