@@ -289,6 +289,8 @@ public class Connection implements Runnable {
             aSocket.close();
         }catch(IOException e){
             log.warning(e.getMessage());
+        }catch(NullPointerException e){
+            log.info("No connection has been established with " + peerInfo.toString());
         }
     }
 
