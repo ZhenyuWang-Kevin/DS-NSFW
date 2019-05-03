@@ -247,10 +247,12 @@ public class Connection implements Runnable {
                         break;
                 }
             }
+        }
 
 
-            // TODO handles the protocol
-            while (true) {
+        // TODO handles the protocol
+        while (true){
+            synchronized (this) {
                 // receive command
                 try {
                     aSocket.setSoTimeout(0);
@@ -281,7 +283,7 @@ public class Connection implements Runnable {
         }
     }
 
-    public void sendCommand(String base64Str){
+    public void sendCommand(String base64Str) {
         synchronized (this) {
             try {
                 out.writeUTF(base64Str);
@@ -290,7 +292,6 @@ public class Connection implements Runnable {
             }
         }
     }
-
     // set the flag for byte transfer allowance
     public void setByteRequestAvailability(boolean val){
         this.readyForBytesRequest = val;
