@@ -17,7 +17,6 @@ public class TCPMain {
     private ServerSocket listenSocket;
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
-    private TCPMain TCPHolder;
 
     private Thread server = new Thread(){
         @Override
@@ -25,7 +24,7 @@ public class TCPMain {
             while(serverActive){
                 try{
                     Socket incommingConnection = listenSocket.accept();
-                    Connection c = new Connection(incommingConnection, TCPHolder);
+                    Connection c = new Connection(incommingConnection);
                     if(c.flagActive){
                         Incomming.put(c.getPeerInfo().toString(), c);
                     }
@@ -61,7 +60,7 @@ public class TCPMain {
         eventBuffer = new LinkedList<>();
         Incomming = new HashMap<>();
         Outgoing = new HashMap<>();
-        TCPHolder = this;
+        Connection.TCPmain = this;
 
         // initialize server socket
         try{
@@ -78,6 +77,7 @@ public class TCPMain {
             if(!connectionExist(tmp)){
                 // try connect with the peer
                 Connection c = new Connection(tmp);
+                c.TCPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){
                     Outgoing.put(tmp.toString(), c);

@@ -7,17 +7,12 @@ import unimelb.bitbox.util.HostPort;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
@@ -30,9 +25,8 @@ public class Connection implements Runnable {
     private DataOutputStream out;
     private Socket aSocket;
     private HostPort peerInfo;
-    private TCPMain TCPmain;
+    public static TCPMain TCPmain;
     private ResponseHandler rh;
-    private boolean readyForBytesRequest;
     private HashMap<String, ByteTransferTask> threadManager;
     private ExecutorService executor;
 
@@ -114,6 +108,11 @@ public class Connection implements Runnable {
         synchronized (this){
             threadManager.remove(key);
         }
+    }
+
+
+    public void TCPmainPatch(TCPMain m){
+        this.TCPmain = m;
     }
 
     // Main work goes here
@@ -284,13 +283,14 @@ public class Connection implements Runnable {
         try{
             log.info("Disconnect with " + peerInfo.toString());
             TCPmain.removeConnection(peerInfo.toString());
-            in.close();
-            out.close();
-            aSocket.close();
+            if(in != null)
+                in.close();
+            if(out != null)
+                out.close();
+            if(aSocket != null)
+                aSocket.close();
         }catch(IOException e){
             log.warning(e.getMessage());
-        }catch(NullPointerException e){
-            log.info("No connection has been established with " + peerInfo.toString());
         }
     }
 
@@ -358,7 +358,7 @@ public class Connection implements Runnable {
 
 
         connectionInit();
-
+        this.peerInfo = peer;
         try{
             aSocket = new Socket(peer.host, peer.port);
             in = new DataInputStream(aSocket.getInputStream());
@@ -400,11 +400,9 @@ public class Connection implements Runnable {
     }
 
     // Incoming connection
-    public Connection(Socket aSocket, TCPMain TCPmain){
+    public Connection(Socket aSocket){
 
         connectionInit();
-
-        this.TCPmain = TCPmain;
 
         try{
             this.aSocket = aSocket;
@@ -420,7 +418,7 @@ public class Connection implements Runnable {
                 // TODO get peerInfo
                 peerInfo = new HostPort((Document) d.get("hostPort"));
 
-                if(!this.TCPmain.maximumConnectionReached()){
+                if(!TCPmain.maximumConnectionReached()){
                     // available for connection, send HANDSHAKE RESPONSE
                     out.writeUTF(JsonUtils.HANDSHAKE_RESPONSE());
 
