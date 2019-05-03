@@ -169,8 +169,8 @@ public class Connection implements Runnable {
             case "FILE_BYTES_REQUEST":
                 synchronized (this) {
                     fdesc = (Document) json.get("fileDescriptor");
-                    if (threadManager.containsKey(fdesc.toJson())) {
-                        ByteTransferTask t = threadManager.get(fdesc.toJson());
+                    if (threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
+                        ByteTransferTask t = threadManager.get(fdesc.toJson() + json.getString("namePath"));
                         t.receive(json);
                     }
                 }
@@ -178,8 +178,8 @@ public class Connection implements Runnable {
             case "FILE_BYTES_RESPONSE":
                 synchronized(this) {
                     fdesc = (Document) json.get("fileDescriptor");
-                    if (threadManager.containsKey(fdesc.toJson())) {
-                        ByteTransferTask t = threadManager.get(fdesc.toJson());
+                    if (threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
+                        ByteTransferTask t = threadManager.get(fdesc.toJson() + json.getString("namePath"));
                         t.receive(json);
                     }
                 }
