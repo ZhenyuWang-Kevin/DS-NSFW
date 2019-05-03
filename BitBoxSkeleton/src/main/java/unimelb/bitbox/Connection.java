@@ -336,6 +336,7 @@ public class Connection implements Runnable {
                 log.info("sending command " + base64Str);
                 out.write(base64Str);
                 out.newLine();
+                out.flush();
             } catch (IOException e) {
                 log.warning(e.getMessage());
             }
@@ -368,6 +369,7 @@ public class Connection implements Runnable {
                     // send Handshake request to other peers
                     out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                     out.newLine();
+                    out.flush();
                     aSocket.setSoTimeout(20*1000);
                     String data = in.readLine();
                     Document d = JsonUtils.decodeBase64toDocument(data);
@@ -405,6 +407,7 @@ public class Connection implements Runnable {
             // send Handshake request to other peers
             out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
             out.newLine();
+            out.flush();
             aSocket.setSoTimeout(20*1000);
             String data = in.readLine();
             Document d = JsonUtils.decodeBase64toDocument(data);
@@ -473,6 +476,7 @@ public class Connection implements Runnable {
                     // not available, stop the connection
                     out.write(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
                     out.newLine();
+                    out.flush();
                     closeSocket();
                 }
             }
