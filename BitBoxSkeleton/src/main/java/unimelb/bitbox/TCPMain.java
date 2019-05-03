@@ -41,13 +41,16 @@ public class TCPMain {
         public void run(){
             while(communicationActive){
                 // when eventBuffer is not empty, broadcast the command to all connected peers
-                while(eventBuffer.size() > 0){
-                    FileSystemEvent event = eventBuffer.poll();
-                    String command = translateEventToCommand(event);
-                    Incomming.forEach((key,value) -> value.sendCommand(command));
-                    Outgoing.forEach((key,value)->value.sendCommand(command));
+                while (eventBuffer.size() > 0) {
+                    synchronized (this) {
+                        FileSystemEvent event = eventBuffer.poll();
+                        String command = translateEventToCommand(event);
+                        Incomming.forEach((key, value) -> value.sendCommand(command));
+                        Outgoing.forEach((key, value) -> value.sendCommand(command));
+                    }
                 }
             }
+
         }
     };
 
@@ -128,6 +131,8 @@ public class TCPMain {
     }
 
     public void addEvent(FileSystemEvent event){
-        this.eventBuffer.add(event);
+        synchronized (this) {
+            this.eventBuffer.add(event);
+        }
     }
 }
