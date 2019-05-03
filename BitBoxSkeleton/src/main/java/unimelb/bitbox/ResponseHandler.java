@@ -266,16 +266,13 @@ public class ResponseHandler {
 
 					ByteBuffer buf = convertStringToByte(content);
 					//write to the file
-					if (fManager.writeFile(pathName, buf, d.getLong("position"))){
-						//check if file has been written completely
-						fManager.checkWriteComplete(pathName);
-					}else{
-						//if failed cancel file loader and send failure response
-						fManager.cancelFileLoader(pathName);
-					}
+					if (!fManager.writeFile(pathName, buf, d.getLong("position"))) {
+                        //check if file has been written completely
+                        //fManager.checkWriteComplete(pathName);
+                        //if failed cancel file loader and send failure response
+                        fManager.cancelFileLoader(pathName);
+                    }
 			}catch(IOException e){
-				log.warning(e.getMessage());
-			}catch(NoSuchAlgorithmException e){
 				log.warning(e.getMessage());
 			}
 		}

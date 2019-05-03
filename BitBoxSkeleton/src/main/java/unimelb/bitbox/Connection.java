@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -99,7 +100,9 @@ public class Connection implements Runnable {
                 }
             }
             try {
-                ResponseHandler.fManager.cancelFileLoader(pathName);
+                ResponseHandler.fManager.checkWriteComplete(pathName);
+            } catch(NoSuchAlgorithmException e){
+                log.warning(e.getMessage());
             } catch(IOException e){
                 log.warning(e.getMessage());
             }
