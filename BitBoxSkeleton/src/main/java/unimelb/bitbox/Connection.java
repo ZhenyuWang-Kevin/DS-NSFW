@@ -69,7 +69,7 @@ public class Connection implements Runnable {
                 if(doc != null) {
                     if(taskType == 0) {
                         if (doc.getLong("position") == positionTracker) {
-                            synchronized (this){
+                            synchronized (rh){
                                 rh.receivedFileBytesResponse(this.doc);
                             }
                         }
@@ -86,7 +86,7 @@ public class Connection implements Runnable {
                         doc = null;
                     }
                     else if(taskType == 1){
-                        synchronized (this)
+                        synchronized (rh)
                         {
                             rh.receivedFileBytesRequest(this.doc);
                         }
@@ -100,7 +100,7 @@ public class Connection implements Runnable {
                 }
             }
             try {
-                ResponseHandler.fManager.checkWriteComplete(pathName);
+                    ResponseHandler.fManager.checkWriteComplete(pathName);
             } catch(NoSuchAlgorithmException e){
                 log.warning(e.getMessage());
             } catch(IOException e){
@@ -159,7 +159,7 @@ public class Connection implements Runnable {
             case "FILE_BYTES_REQUEST":
                 fdesc = (Document)json.get("fileDescriptor");
                 if(threadManager.containsKey(fdesc.toJson())){
-                    synchronized (this) {
+                    synchronized (threadManager) {
                         ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
                     }
@@ -168,7 +168,7 @@ public class Connection implements Runnable {
             case "FILE_BYTES_RESPONSE":
                 fdesc = (Document)json.get("fileDescriptor");
                 if(threadManager.containsKey(fdesc.toJson())){
-                    synchronized (this) {
+                    synchronized (threadManager) {
                         ByteTransferTask t = threadManager.get(fdesc.toJson());
                         t.receive(json);
                     }
