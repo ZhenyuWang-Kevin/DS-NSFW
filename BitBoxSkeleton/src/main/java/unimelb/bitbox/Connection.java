@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,8 +23,8 @@ public class Connection implements Runnable {
 
     private static Logger log = Logger.getLogger(Connection.class.getName());
 
-    private DataInputStream in;
-    private DataOutputStream out;
+    private BufferedReader in;
+    private BufferedWriter out;
     private Socket aSocket;
     private HostPort peerInfo;
     public static TCPMain TCPmain;
@@ -300,7 +301,7 @@ public class Connection implements Runnable {
                 // receive command
                 try {
 
-                    String data = in.readUTF();
+                    String data = in.readLine();
                     log.info("receiving data: " + data);
                     receiveCommand(JsonUtils.decodeBase64toDocument(data));
 
@@ -333,7 +334,8 @@ public class Connection implements Runnable {
     public void sendCommand(String base64Str) {
             try {
                 log.info("sending command " + base64Str);
-                out.writeUTF(base64Str);
+                out.write(base64Str);
+                out.newLine();
             } catch (IOException e) {
                 log.warning(e.getMessage());
             }
@@ -360,13 +362,14 @@ public class Connection implements Runnable {
 
                 try {
                     aSocket = new Socket(peer.host, peer.port);
-                    in = new DataInputStream(aSocket.getInputStream());
-                    out = new DataOutputStream(aSocket.getOutputStream());
+                    in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
+                    out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
                     // send Handshake request to other peers
-                    out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                    out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                    out.newLine();
                     aSocket.setSoTimeout(20*1000);
-                    String data = in.readUTF();
+                    String data = in.readLine();
                     Document d = JsonUtils.decodeBase64toDocument(data);
 
                     if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
@@ -396,13 +399,14 @@ public class Connection implements Runnable {
         this.peerInfo = peer;
         try{
             aSocket = new Socket(peer.host, peer.port);
-            in = new DataInputStream(aSocket.getInputStream());
-            out = new DataOutputStream(aSocket.getOutputStream());
+            in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
+            out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
             // send Handshake request to other peers
-            out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+            out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+            out.newLine();
             aSocket.setSoTimeout(20*1000);
-            String data = in.readUTF();
+            String data = in.readLine();
             Document d = JsonUtils.decodeBase64toDocument(data);
 
             if(d.getString("command").equals("HANDSHAKE_RESPONSE")){
@@ -441,11 +445,11 @@ public class Connection implements Runnable {
 
         try{
             this.aSocket = aSocket;
-            in = new DataInputStream(this.aSocket.getInputStream());
-            out = new DataOutputStream(this.aSocket.getOutputStream());
+            in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
+            out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
             // TODO decode handshake message
-            String data = in.readUTF();
+            String data = in.readLine();
             Document d = JsonUtils.decodeBase64toDocument(data);
 
             if(d.getString("command").equals("HANDSHAKE_REQUEST")){
@@ -455,8 +459,8 @@ public class Connection implements Runnable {
 
                 if(!TCPmain.maximumConnectionReached()){
                     // available for connection, send HANDSHAKE RESPONSE
-                    out.writeUTF(JsonUtils.HANDSHAKE_RESPONSE());
-
+                    out.write(JsonUtils.HANDSHAKE_RESPONSE());
+                    out.newLine();
                     flagActive = true;
 
                     // start the thread for the socket
@@ -467,7 +471,8 @@ public class Connection implements Runnable {
                     // maximum connection reached
                     flagActive = false;
                     // not available, stop the connection
-                    out.writeUTF(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
+                    out.write(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
+                    out.newLine();
                     closeSocket();
                 }
             }
