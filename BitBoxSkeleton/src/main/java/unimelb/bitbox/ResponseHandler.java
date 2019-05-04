@@ -147,7 +147,21 @@ public class ResponseHandler {
 						connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "file already exists with matching content", false));
 					}
 				} else {
-					connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "pathname does not exist", false));
+					try {
+						if (fManager.createFileLoader(pathName, desc.getString("md5"), desc.getLong("fileSize"),desc.getLong("lastModified"))) {
+							accept = true;
+							connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "file loader ready", true));
+							connection.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDesc, d.getString("pathName"), 0, maximumBlockSize < fDesc.fileSize ? maximumBlockSize : fDesc.fileSize));
+						} else {
+							connection.sendCommand(JsonUtils.FILE_MODIFY_RESPONSE(fDesc, pathName, "there was a problem modifying the file", false));
+						}
+
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						log.warning(e.getMessage());
+					} catch (NoSuchAlgorithmException e){
+						log.warning(e.getMessage());
+					}
 				}
 
 			} else {
