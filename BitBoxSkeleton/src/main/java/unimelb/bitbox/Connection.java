@@ -160,7 +160,7 @@ public class Connection implements Runnable {
                         if (!threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
                             threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
-                        } else if (threadManager.get(fdesc.toJson()).finished) {
+                        } else if (threadManager.get(fdesc.toJson()+ json.getString("namePath")).finished) {
                             threadManager.remove(fdesc.toJson() + json.getString("namePath"));
                             threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
@@ -181,7 +181,7 @@ public class Connection implements Runnable {
                         if (!threadManager.containsKey(fdesc.toJson() + json.getString("namePath"))) {
                             threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
-                        } else if (threadManager.get(fdesc.toJson()).finished) {
+                        } else if (threadManager.get(fdesc.toJson()+ json.getString("namePath")).finished) {
                             threadManager.remove(fdesc.toJson() + json.getString("namePath"));
                             threadManager.put(fdesc.toJson() + json.getString("namePath"), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("namePath")));
                             executor.execute(threadManager.get(fdesc.toJson() + json.getString("namePath")));
