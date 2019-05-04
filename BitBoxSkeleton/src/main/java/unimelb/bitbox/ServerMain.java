@@ -20,8 +20,9 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		timer = 0;
-		TCP = new TCPMain();
 		ResponseHandler.fManager = fileSystemManager;
+		TCP = new TCPMain();
+
 
 		Thread t = new Thread(this);
 		t.start();
