@@ -6,6 +6,7 @@ import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
@@ -428,7 +429,8 @@ public class Connection implements Runnable {
         connectionInit();
         this.peerInfo = peer;
         try{
-            aSocket = new Socket(peer.host, peer.port);
+            aSocket = new Socket();
+            aSocket.connect(new InetSocketAddress(peer.host, peer.port), 5000);
             in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
             out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
