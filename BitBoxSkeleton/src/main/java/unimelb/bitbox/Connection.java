@@ -68,7 +68,7 @@ public class Connection implements Runnable {
         }
 
         public void run(){
-
+            // finish until file transfer complete or reach time out
             while(remainingFileSize > 0){
                 long start = System.currentTimeMillis();
                 synchronized (this) {
@@ -110,9 +110,14 @@ public class Connection implements Runnable {
                     break;
                 }
             }
+
+            // after transfer complete, check for completion
             try{
                 boolean complete = ResponseHandler.fManager.checkWriteComplete(pathName);
                 log.info(pathName + " write completion: " + complete);
+                if(!complete && taskType == 0){
+                    ResponseHandler.fManager.cancelFileLoader(pathName);
+                }
             } catch (NoSuchAlgorithmException e) {
                 log.warning(e.getMessage());
             } catch (IOException e) {

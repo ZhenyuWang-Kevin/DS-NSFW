@@ -18,6 +18,7 @@ public class TCPMain {
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
 
+    // listening for incoming connections
     private Thread server = new Thread(){
         @Override
         public void run(){
@@ -35,6 +36,7 @@ public class TCPMain {
         }
     };
 
+    // broadcast File system event to other peers
     private Thread communication = new Thread(){
         @Override
         public void run(){
@@ -141,6 +143,7 @@ public class TCPMain {
         return null;
     }
 
+    // add event to eventBuffer
     public void addEvent(FileSystemEvent event){
         synchronized (this) {
             this.eventBuffer.add(event);
