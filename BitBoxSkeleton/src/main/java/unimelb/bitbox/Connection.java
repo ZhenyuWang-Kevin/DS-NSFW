@@ -330,7 +330,7 @@ public class Connection implements Runnable {
                         flagActive = false;
                     }else {
                         log.info("receiving data: " + data);
-                        receiveCommand(JsonUtils.decodeBase64toDocument(data));
+                        receiveCommand(Document.parse(data));
                     }
 
                 } catch (IOException e) {
@@ -400,7 +400,7 @@ public class Connection implements Runnable {
                     out.flush();
                     aSocket.setSoTimeout(20*1000);
                     String data = in.readLine();
-                    Document d = JsonUtils.decodeBase64toDocument(data);
+                    Document d = Document.parse(data);
 
                     if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
                         peerInfo = new HostPort((Document) d.get("hostPort"));
@@ -438,7 +438,7 @@ public class Connection implements Runnable {
             out.flush();
             aSocket.setSoTimeout(20*1000);
             String data = in.readLine();
-            Document d = JsonUtils.decodeBase64toDocument(data);
+            Document d = Document.parse(data);
 
             if(d.getString("command").equals("HANDSHAKE_RESPONSE")){
                 peerInfo = new HostPort((Document) d.get("hostPort"));
@@ -481,7 +481,7 @@ public class Connection implements Runnable {
 
             // TODO decode handshake message
             String data = in.readLine();
-            Document d = JsonUtils.decodeBase64toDocument(data);
+            Document d = Document.parse(data);
 
             if(d.getString("command").equals("HANDSHAKE_REQUEST")){
 
