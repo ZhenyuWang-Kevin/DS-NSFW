@@ -78,7 +78,7 @@ public class TCPMain {
             // if connection does not exist
             if(!connectionExist(tmp)){
                 // try connect with the peer
-                Connection c = new Connection(tmp);
+                Connection c = new Connection(tmp, "TCP");
                 c.TCPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){

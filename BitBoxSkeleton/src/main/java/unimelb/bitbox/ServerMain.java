@@ -15,13 +15,21 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	protected FileSystemManager fileSystemManager;
 	private float timer;
 	private TCPMain TCP;
+	private UDPMain UDP;
 	private int syncTIme = Integer.parseInt(Configuration.getConfigurationValue("syncInterval"));
+	private String mode;
 
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		timer = 0;
 		ResponseHandler.fManager = fileSystemManager;
-		TCP = new TCPMain();
+
+		mode = Configuration.getConfigurationValue("mode");
+		if(mode.equals("TCP")) {
+			TCP = new TCPMain();
+		} else {
+			UDP = new UDPMain();
+		}
 
 
 		Thread t = new Thread(this);
@@ -48,6 +56,10 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
-		TCP.addEvent(fileSystemEvent);
+		if(mode.equals("TCP"))
+			TCP.addEvent(fileSystemEvent);
+		else{
+			UDP.addEvent(fileSystemEvent);
+		}
 	}
 }

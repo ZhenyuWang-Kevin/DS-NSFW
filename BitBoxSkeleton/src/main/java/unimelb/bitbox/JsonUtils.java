@@ -1,9 +1,6 @@
 package unimelb.bitbox;
 
-import unimelb.bitbox.util.Configuration;
-import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.FileSystemManager;
-import unimelb.bitbox.util.HostPort;
+import unimelb.bitbox.util.*;
 
 import java.util.Base64;
 
@@ -34,7 +31,7 @@ public class JsonUtils {
     public JsonUtils(){}
 
     private static String base64encodedCommand(String command){
-        return Base64.getEncoder().encodeToString(command.getBytes());
+        return command;
     }
 
     /**
@@ -43,9 +40,7 @@ public class JsonUtils {
      * @return a json Document
      */
     public static Document decodeBase64toDocument(String base64Str){
-
-        String data = new String(Base64.getDecoder().decode(base64Str.getBytes()));
-        return Document.parse(data);
+        return Document.parse(base64Str);
     }
 
     /* The code below are set of communication protocol,

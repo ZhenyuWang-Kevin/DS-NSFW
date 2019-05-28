@@ -3,13 +3,13 @@ package unimelb.bitbox;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 import unimelb.bitbox.util.HostPort;
+import unimelb.bitbox.util.Document;
 
 import java.util.*;
 import java.io.*;
 import java.net.*;
 import java.util.logging.Logger;
 
-import javax.swing.text.Document;
 
 public class UDPMain {
 	
@@ -35,9 +35,9 @@ public class UDPMain {
                     int port=dp.getPort();
                     String data =new String(dp.getData(),0,dp.getLength());
                     InetAddress aHost = InetAddress.getByName(ip);
-                    Document d = (Document) JsonUtils.decodeBase64toDocument(data);
+                    Document d = JsonUtils.decodeBase64toDocument(data);
                     Socket incommingConnection = listenSocket.accept();
-                    Connection c = new Connection(aHost,port,d,this);
+                    Connection c = new Connection(aHost,port,d);
                     
                     
                     if(c.flagActive){
@@ -90,7 +90,7 @@ public class UDPMain {
             // if connection does not exist
             if(!connectionExist(tmp)){
                 // try connect with the peer
-                Connection c = new Connection(tmp);
+                Connection c = new Connection(tmp, "UDP");
                 c.UDPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){
