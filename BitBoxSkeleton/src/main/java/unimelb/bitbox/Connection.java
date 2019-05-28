@@ -144,7 +144,7 @@ public class Connection implements Runnable {
     }
 
     // Main work goes here
-    private void receiveCommand(Document json){
+    public void receiveCommand(Document json){
         Document fdesc;
         log.info("received command: " + json.getString("command"));
         switch(json.getString("command")){

@@ -35,12 +35,20 @@ public class UDPMain {
                     int port=dp.getPort();
                     String data =new String(dp.getData(),0,dp.getLength());
                     InetAddress aHost = InetAddress.getByName(ip);
+                    HostPort key = new HostPort(ip, port);
                     Document d = JsonUtils.decodeBase64toDocument(data);
-                    Connection c = new Connection(aHost,port,d);
-                    
-                    
-                    if(c.flagActive){
-                        Incomming.put(c.getPeerInfo().toString(), c);
+                    if(Incomming.containsKey(key)){
+                        Incomming.get(key).receiveCommand(d);
+                    } else if(Outgoing.containsKey(key)) {
+                        Outgoing.get(key).receiveCommand(d);
+                    } else {
+
+                        Connection c = new Connection(aHost, port, d);
+
+
+                        if (c.flagActive) {
+                            Incomming.put(c.getPeerInfo().toString(), c);
+                        }
                     }
                 }catch(IOException e){
                     log.warning(e.getMessage());
