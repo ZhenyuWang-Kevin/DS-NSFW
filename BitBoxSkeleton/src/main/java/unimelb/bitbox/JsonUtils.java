@@ -65,7 +65,7 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("peers", TCPmain.getAllConnections());
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -95,7 +95,7 @@ public class JsonUtils {
         d.append("command", "HANDSHAKE_REQUEST");
         d.append("hostPort", p.toDoc());
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     // HANDSHAKE RESPONSE
@@ -107,7 +107,7 @@ public class JsonUtils {
         d.append("command","HANDSHAKE_RESPONSE");
         d.append("hostPort", getSelfHostPort().toDoc());
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -122,7 +122,7 @@ public class JsonUtils {
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -141,7 +141,7 @@ public class JsonUtils {
         d.append("meesage",msg);
         d.append("status",status);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -161,7 +161,7 @@ public class JsonUtils {
         d.append("position", position);
         d.append("length",length);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -189,7 +189,7 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -205,7 +205,7 @@ public class JsonUtils {
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -225,7 +225,7 @@ public class JsonUtils {
         d.append("message",msg);
         d.append("status",status);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -241,7 +241,7 @@ public class JsonUtils {
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -261,7 +261,7 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -274,7 +274,7 @@ public class JsonUtils {
         d.append("command", "DIRECTORY_CREATE_REQUEST");
         d.append("pathName", dirPath);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -286,11 +286,12 @@ public class JsonUtils {
      */
     public static String DIRECTORY_CREATE_RESPONSE(String dirPath, String msg, boolean status){
         Document d = new Document();
+        d.append("command", "DIRECTORY_CREATE_RESPONSE");
         d.append("pathName", dirPath);
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -303,7 +304,7 @@ public class JsonUtils {
         d.append("command", "DIRECTORY_DELETE_REQUEST");
         d.append("pathName", dirPath);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -320,7 +321,7 @@ public class JsonUtils {
         d.append("message", msg);
         d.append("status", status);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     /**
@@ -333,7 +334,7 @@ public class JsonUtils {
         d.append("command", "INVALID_PROTOCOL");
         d.append("message", msg);
 
-        return base64encodedCommand(d.toJson());
+        return d.toJson();
     }
 
     //----------------------------------------

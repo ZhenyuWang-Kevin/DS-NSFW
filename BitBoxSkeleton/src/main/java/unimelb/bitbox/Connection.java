@@ -6,16 +6,16 @@ import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
 
 import java.io.*;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
@@ -24,26 +24,21 @@ public class Connection implements Runnable {
 
     private static Logger log = Logger.getLogger(Connection.class.getName());
 
-    private DataInputStream in;
-    private DataOutputStream out;
-    private Socket TCPSocket;
-    private DatagramSocket UDPSocket;
+    private BufferedReader in;
+    private BufferedWriter out;
+    private Socket aSocket;
     private HostPort peerInfo;
-    private InetAddress address;
-    private TCPMain TCPmain;
-    private UDPMain UDPmain;
+    public static TCPMain TCPmain;
     private ResponseHandler rh;
-    private boolean readyForBytesRequest;
     private HashMap<String, ByteTransferTask> threadManager;
     private ExecutorService executor;
-    private String _mode;
 
     public boolean flagActive;
 
     // Multi-threading tasks
     class ByteTransferTask implements Runnable{
         private ResponseHandler rh;
-        public String fDesc;
+        public String key;
         private Document doc;
         private long positionTracker = 0;
         private long remainingFileSize;
@@ -52,92 +47,132 @@ public class Connection implements Runnable {
         private int taskType;
         private Connection c;
         private String pathName;
+        private long timeOutThreshold;
+        private long timer;
 
-        public ByteTransferTask(String f, long fileSize, int type, ResponseHandler rh, Connection c){
-            this.fDesc = f;
+        public ByteTransferTask(String key, long fileSize, int type, ResponseHandler rh, Connection c, String pathName){
+            this.key = key;
             this.doc = null;
             this.remainingFileSize = fileSize;
+            this.pathName = pathName;
             taskType = type;
             this.rh = rh;
             this.c = c;
+            this.timeOutThreshold = 30*1000;
+            this.timer = 0;
         }
 
         public void receive(Document d){
-            this.doc = d;
-            pathName = this.doc.getString("pathName");
+            synchronized (this) {
+                this.doc = d;
+            }
         }
 
         public void run(){
+            // finish until file transfer complete or reach time out
             while(remainingFileSize > 0){
-                if(doc != null) {
-                    if(taskType == 0) {
-                        if (doc.getLong("position") == positionTracker) {
+                long start = System.currentTimeMillis();
+                synchronized (this) {
+                    if (doc != null) {
+                        timer = 0;
+                        log.info("file size remaining: " + remainingFileSize);
+                        if (taskType == 0) {
+                            if (doc.getLong("position") == positionTracker) {
                                 rh.receivedFileBytesResponse(this.doc);
-                        }
-                        remainingFileSize -= doc.getLong("length");
-                        positionTracker += doc.getLong("length");
-                        if (remainingFileSize > 0) {
-                            // TODO send next byte request
-                            Document fD = (Document)doc.get("fileDescriptor");
-                            FileSystemManager.FileDescriptor fDescriptor= ResponseHandler.fManager.new FileDescriptor(fD.getLong("lastModified"), fD.getString("md5"), fD.getLong("fileSize"));
-                                c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor,doc.getString("pathName"), positionTracker, Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
-                        }
-                        doc = null;
-                    }
-                    else if(taskType == 1){
-                            rh.receivedFileBytesRequest(this.doc);
-                        // Only update the remaining fileSize and position Tracker when two peers position are synchronized
-                        if(doc.getLong("position") == positionTracker){
+                            }
                             remainingFileSize -= doc.getLong("length");
                             positionTracker += doc.getLong("length");
+                            if (remainingFileSize > 0) {
+                                // TODO send next byte request
+                                Document fD = (Document) doc.get("fileDescriptor");
+                                FileSystemManager.FileDescriptor fDescriptor = ResponseHandler.fManager.new FileDescriptor(fD.getLong("lastModified"), fD.getString("md5"), fD.getLong("fileSize"));
+                                c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor, doc.getString("pathName"), positionTracker, Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
+                            }
+                            doc = null;
+                        } else if (taskType == 1) {
+                            rh.receivedFileBytesRequest(this.doc);
+                            // Only update the remaining fileSize and position Tracker when two peers position are synchronized
+                            if (doc.getLong("position") == positionTracker) {
+                                remainingFileSize -= doc.getLong("length");
+                                positionTracker += doc.getLong("length");
+                            }
+                            doc = null;
                         }
-                        doc = null;
                     }
                 }
-            }
-            boolean flag = true;
-            while(flag) {
-                try {
-                    ResponseHandler.fManager.checkWriteComplete(pathName);
-                    flag = false;
-                } catch (NoSuchAlgorithmException e) {
-                    log.warning(e.getMessage());
-                } catch (IOException e) {
-                    log.warning(e.getMessage());
+                this.timer += System.currentTimeMillis() - start;
+                if(this.timer > this.timeOutThreshold){
+                    log.warning("File transfer timeout: " + pathName);
+                    try {
+                        ResponseHandler.fManager.cancelFileLoader(pathName);
+                    }catch(IOException e){
+                        log.warning(e.getMessage());
+                    }
+                    break;
                 }
-                finished = true;
             }
+
+            // after transfer complete, check for completion
+            try{
+                boolean complete = ResponseHandler.fManager.checkWriteComplete(pathName);
+                log.info(pathName + " write completion: " + complete);
+                if(!complete && taskType == 0){
+                    ResponseHandler.fManager.cancelFileLoader(pathName);
+                }
+            } catch (NoSuchAlgorithmException e) {
+                log.warning(e.getMessage());
+            } catch (IOException e) {
+                log.warning(e.getMessage());
+            }
+            finished = true;
+            c.removeTransferTask(key);
+        }
+    }
+
+    public void removeTransferTask(String key){
+        synchronized (this){
+            threadManager.remove(key);
         }
     }
 
 
+    public void TCPmainPatch(TCPMain m){
+        this.TCPmain = m;
+    }
+
     // Main work goes here
     private void receiveCommand(Document json){
         Document fdesc;
+        log.info("received command: " + json.getString("command"));
         switch(json.getString("command")){
             case "INVALID_PROTOCOL":
                 // TODO disconnect the connection
+                closeSocket();
                 break;
 
             case "HANDSHAKE_REQUEST":
                 // TODO response with INVALID PROTOCOL, then disconnect the connection
+                sendCommand(JsonUtils.INVALID_PROTOCOL("Invalid command!!"));
+                closeSocket();
                 break;
 
             case "FILE_CREATE_REQUEST":
                 // TODO check for whether file needs transfer
                 //  if yes, send a response, then create a new thread
-                fdesc = (Document)json.get("fileDescriptor");
-                // if there is no thread for this key
-                if(!threadManager.containsKey(fdesc.toJson())){
-                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
-                    executor.execute(threadManager.get(fdesc.toJson()));
+                synchronized (this) {
+                    if(rh.receivedFileCreateRequest(json)) {
+                        fdesc = (Document) json.get("fileDescriptor");
+                        // if there is no thread for this key
+                        if (!threadManager.containsKey(fdesc.toJson() + json.getString("pathName"))) {
+                            threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("pathName")));
+                            executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                        } else if (threadManager.get(fdesc.toJson()+ json.getString("pathName")).finished) {
+                            threadManager.remove(fdesc.toJson() + json.getString("pathName"));
+                            threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("pathName")));
+                            executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                        }
+                    }
                 }
-                else if(threadManager.get(fdesc.toJson()).finished){
-                    threadManager.remove(fdesc.toJson());
-                    threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 0, this.rh, this));
-                    executor.execute(threadManager.get(fdesc.toJson()));
-                }
-                rh.receivedFileCreateRequest(json);
                 break;
 
             case "FILE_DELETE_REQUEST":
@@ -145,7 +180,20 @@ public class Connection implements Runnable {
                 break;
 
             case "FILE_MODIFY_REQUEST":
-                rh.receivedFileModifyRequest(json);
+                synchronized (this) {
+                    if(rh.receivedFileModifyRequest(json)) {
+                        fdesc = (Document) json.get("fileDescriptor");
+                        // if there is no thread for this key
+                        if (!threadManager.containsKey(fdesc.toJson() + json.getString("pathName"))) {
+                            threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("pathName")));
+                            executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                        } else if (threadManager.get(fdesc.toJson()+ json.getString("pathName")).finished) {
+                            threadManager.remove(fdesc.toJson() + json.getString("pathName"));
+                            threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 0, this.rh, this, json.getString("pathName")));
+                            executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                        }
+                    }
+                }
                 break;
 
             case "DIRECTORY_CREATE_REQUEST":
@@ -157,35 +205,42 @@ public class Connection implements Runnable {
                 break;
 
             case "FILE_BYTES_REQUEST":
-                fdesc = (Document)json.get("fileDescriptor");
-                if(threadManager.containsKey(fdesc.toJson())){
-                        ByteTransferTask t = threadManager.get(fdesc.toJson());
+                synchronized (this) {
+                    fdesc = (Document) json.get("fileDescriptor");
+                    if (threadManager.containsKey(fdesc.toJson() + json.getString("pathName"))) {
+                        ByteTransferTask t = threadManager.get(fdesc.toJson() + json.getString("pathName"));
                         t.receive(json);
+                    }
                 }
                 break;
             case "FILE_BYTES_RESPONSE":
-                fdesc = (Document)json.get("fileDescriptor");
-                if(threadManager.containsKey(fdesc.toJson())){
-                        ByteTransferTask t = threadManager.get(fdesc.toJson());
+                synchronized(this) {
+                    fdesc = (Document) json.get("fileDescriptor");
+                    if (threadManager.containsKey(fdesc.toJson() + json.getString("pathName"))) {
+                        ByteTransferTask t = threadManager.get(fdesc.toJson() + json.getString("pathName"));
                         t.receive(json);
+                    }
                 }
                 break;
             case "FILE_CREATE_RESPONSE":
                 // when receive positive response, create thread to handle file transfer
-                if(json.getBoolean("status")){
-                    fdesc = (Document)json.get("fileDescriptor");
-                    // if there is no thread for this key
-                    if(!threadManager.containsKey(fdesc.toJson())){
-                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson() + json.getString("namePath"), fdesc.getLong("fileSize"), 1,this.rh, this));
-                        executor.execute(threadManager.get(fdesc.toJson()));
-                    }
-                    else if(threadManager.get(fdesc.toJson()).finished){
-                        threadManager.remove(fdesc.toJson());
-                        threadManager.put(fdesc.toJson(), new ByteTransferTask(fdesc.toJson(), fdesc.getLong("namePath"),1,this.rh, this));
-                        executor.execute(threadManager.get(fdesc.toJson()));
+                if(rh.receivedFileCreateResponse(json)) {
+                    synchronized (this) {
+                        if (json.getBoolean("status")) {
+                            fdesc = (Document) json.get("fileDescriptor");
+                            // if there is no thread for this key
+                            if (!threadManager.containsKey(fdesc.toJson() + json.getString("pathName"))) {
+                                threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("pathName")));
+                                executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                            } else if (threadManager.get(fdesc.toJson() + json.getString("pathName")).finished) {
+                                threadManager.remove(fdesc.toJson() + json.getString("pathName"));
+                                threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("pathName")));
+                                executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                            }
+                        }
+
                     }
                 }
-                rh.receivedFileCreateResponse(json);
                 break;
 
             case "FILE_DELETE_RESPONSE":
@@ -193,7 +248,25 @@ public class Connection implements Runnable {
                 break;
 
             case "FILE_MODIFY_RESPONSE":
-                rh.receivedFileModifyResponse(json);
+                if(rh.receivedFileModifyResponse(json)) {
+                    synchronized (this) {
+                        if (json.getBoolean("status")) {
+                            fdesc = (Document) json.get("fileDescriptor");
+                            // if there is no thread for this key
+                            if (!threadManager.containsKey(fdesc.toJson() + json.getString("pathName"))) {
+                                threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("pathName")));
+                                executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                            } else if (threadManager.get(fdesc.toJson() + json.getString("pathName")).finished) {
+                                threadManager.remove(fdesc.toJson() + json.getString("pathName"));
+                                threadManager.put(fdesc.toJson() + json.getString("pathName"), new ByteTransferTask(fdesc.toJson() + json.getString("pathName"), fdesc.getLong("fileSize"), 1, this.rh, this, json.getString("pathName")));
+                                executor.execute(threadManager.get(fdesc.toJson() + json.getString("pathName")));
+                            }
+                        }
+
+
+                    }
+                }
+
                 break;
 
             case "DIRECTORY_CREATE_RESPONSE":
@@ -205,6 +278,8 @@ public class Connection implements Runnable {
                 break;
 
             default:
+                sendCommand(JsonUtils.INVALID_PROTOCOL("Invalid command!!"));
+                closeSocket();
                 break;
         }
     }
@@ -216,52 +291,54 @@ public class Connection implements Runnable {
     }
 
     public void run() {
-        log.info("Connection established with " + peerInfo.toString());
-        // TODO handles synchronized events
-        ArrayList<FileSystemManager.FileSystemEvent> events = ResponseHandler.fManager.generateSyncEvents();
+        synchronized (this) {
+            log.info("Connection established with " + peerInfo.toString());
+            // TODO handles synchronized events
+            ArrayList<FileSystemManager.FileSystemEvent> events = ResponseHandler.fManager.generateSyncEvents();
 
-        for (FileSystemManager.FileSystemEvent e : events){
-            switch(e.event){
-                case FILE_CREATE:
-                    sendCommand(JsonUtils.FILE_CREATE_REQUEST(e.fileDescriptor,e.pathName));
-                    break;
-                case FILE_DELETE:
-                    sendCommand(JsonUtils.FILE_DELETE_REQUEST(e.fileDescriptor,e.pathName));
-                    break;
-                case FILE_MODIFY:
-                    sendCommand(JsonUtils.FILE_MODIFY_REQUEST(e.fileDescriptor,e.pathName));
-                    break;
-                case DIRECTORY_CREATE:
-                    sendCommand(JsonUtils.DIRECTORY_CREATE_REQUEST(e.pathName));
-                    break;
-                case DIRECTORY_DELETE:
-                    sendCommand(JsonUtils.DIRECTORY_DELETE_REQUEST(e.pathName));
-                    break;
+            for (FileSystemManager.FileSystemEvent e : events) {
+                switch (e.event) {
+                    case FILE_CREATE:
+                        sendCommand(JsonUtils.FILE_CREATE_REQUEST(e.fileDescriptor, e.pathName));
+                        break;
+                    case FILE_DELETE:
+                        sendCommand(JsonUtils.FILE_DELETE_REQUEST(e.fileDescriptor, e.pathName));
+                        break;
+                    case FILE_MODIFY:
+                        sendCommand(JsonUtils.FILE_MODIFY_REQUEST(e.fileDescriptor, e.pathName));
+                        break;
+                    case DIRECTORY_CREATE:
+                        sendCommand(JsonUtils.DIRECTORY_CREATE_REQUEST(e.pathName));
+                        break;
+                    case DIRECTORY_DELETE:
+                        sendCommand(JsonUtils.DIRECTORY_DELETE_REQUEST(e.pathName));
+                        break;
+                }
             }
         }
 
 
         // TODO handles the protocol
-        while (true){
-            // receive command
-            try {
-                if(_mode.equals("TCP")) {
-                    TCPSocket.setSoTimeout(0);
-                    String data = in.readUTF();
-                    receiveCommand(JsonUtils.decodeBase64toDocument(data));
-                } else {
-                    UDPSocket.setSoTimeout(0);
-                    receiveCommand(recieveUDPCommand());
-                }
-            } catch (SocketTimeoutException e) {
-                // check for finished thread every 20sec, and remove any finished task class.
-                threadManager.forEach((key,value) -> {
-                    if(value.finished){
-                        threadManager.remove(key);
+        while (flagActive){
+            synchronized (this) {
+                // receive command
+                try {
+
+                    String data = in.readLine();
+                    if(data == null){
+                        log.info("disconnect with " + peerInfo.toString());
+                        closeSocket();
+                        flagActive = false;
+                    }else {
+                        log.info("receiving data: " + data);
+                        receiveCommand(Document.parse(data));
                     }
-                });
-            } catch (IOException e){
-                log.warning(e.getMessage() + this.peerInfo);
+
+                } catch (IOException e) {
+                    log.warning(e.getMessage() + this.peerInfo);
+                    closeSocket();
+
+                }
             }
         }
     }
@@ -269,50 +346,33 @@ public class Connection implements Runnable {
     // close the socket
     public void closeSocket(){
         try{
-            if(_mode.equals("TCP")) {
+            flagActive = false;
+            log.info("Disconnect with " + peerInfo.toString());
+            TCPmain.removeConnection(peerInfo.toString());
+            if(in != null)
                 in.close();
+            if(out != null)
                 out.close();
-                TCPSocket.close();
-            } else {
-                UDPSocket.close();
-            }
+            if(aSocket != null)
+                aSocket.close();
         }catch(IOException e){
             log.warning(e.getMessage());
         }
     }
 
-    public void sendCommand(String base64Str){
-        try{
-            if(_mode.equals("TCP")) {
-                out.writeUTF(base64Str);
-            } else{
-                DatagramPacket command = new DatagramPacket(base64Str.getBytes(), base64Str.length(), address, peerInfo.port);
-                UDPSocket.send(command);
+    public void sendCommand(String base64Str) {
+            try {
+               // log.info("sending command " + base64Str);
+                out.write(base64Str);
+                out.newLine();
+                out.flush();
+            } catch (IOException e) {
+                log.warning(e.getMessage());
             }
-        }catch(IOException e){
-            log.warning(e.getMessage());
-        }
-    }
-
-    // set the flag for byte transfer allowance
-    public void setByteRequestAvailability(boolean val){
-        this.readyForBytesRequest = val;
     }
 
     public HostPort getPeerInfo(){
         return peerInfo;
-    }
-
-    public Document recieveUDPCommand(){
-        byte[] buffer = new byte[8192];
-        DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
-        try {
-            this.UDPSocket.receive(reply);
-            return JsonUtils.decodeBase64toDocument(new String(reply.getData()));
-        }catch(Exception e){
-            log.warning(e.getMessage());
-        }
-        return JsonUtils.decodeBase64toDocument(JsonUtils.INVALID_PROTOCOL("Exception error"));
     }
 
     // when peers reached maximum connection, search for its adjacent peers and trying to connect
@@ -331,54 +391,29 @@ public class Connection implements Runnable {
             if(!TCPmain.connectionExist(peer)) {
 
                 try {
-                    if(_mode.equals("TCP")) {
-                        TCPSocket = new Socket(peer.host, peer.port);
-                        in = new DataInputStream(TCPSocket.getInputStream());
-                        out = new DataOutputStream(TCPSocket.getOutputStream());
+                    aSocket = new Socket(peer.host, peer.port);
+                    in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
+                    out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
-                        // send Handshake request to other peers
-                        out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                    // send Handshake request to other peers
+                    out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                    out.newLine();
+                    out.flush();
+                    aSocket.setSoTimeout(20*1000);
+                    String data = in.readLine();
+                    Document d = Document.parse(data);
 
-                        String data = in.readUTF();
-                        Document d = JsonUtils.decodeBase64toDocument(data);
+                    if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                        peerInfo = new HostPort((Document) d.get("hostPort"));
+                        flagActive = true;
+                        connectionEstablished = true;
 
-                        if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                            peerInfo = new HostPort((Document) d.get("hostPort"));
-                            flagActive = true;
-                            connectionEstablished = true;
-
-                            Thread t = new Thread(this);
-                            t.start();
-                        } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-                            // TODO breath first search for other available peers
-                            peers.addAll((ArrayList<Document>) d.get("peers"));
-                            in.close();
-                            out.close();
-                            TCPSocket.close();
-                        }
-                    } else {
-
-                        UDPSocket = new DatagramSocket();
-
-                        sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-
-                        UDPSocket.setSoTimeout(5*1000);
-                        Document d = recieveUDPCommand();
-
-                        if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                            peerInfo = new HostPort((Document) d.get("hostPort"));
-                            flagActive = true;
-                            connectionEstablished = true;
-
-                            Thread t = new Thread(this);
-                            t.start();
-                        } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-                            // TODO breath first search for other available peers
-                            peers.addAll((ArrayList<Document>) d.get("peers"));
-                            in.close();
-                            out.close();
-                            UDPSocket.close();
-                        }
+                        Thread t = new Thread(this);
+                        t.start();
+                    } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                        // TODO breath first search for other available peers
+                        peers.addAll((ArrayList<Document>) d.get("peers"));
+                        closeSocket();
                     }
                 } catch (IOException e) {
                     log.warning(e.getMessage() + " " + peer.toString());
@@ -388,142 +423,77 @@ public class Connection implements Runnable {
         return true;
     }
 
-    public Connection(HostPort peer, String mode){
-        connectionInit();
-        this._mode = mode;
-        if(mode.equals("TCP")) {
-            // TCP
-            try {
-                this.TCPSocket = new Socket(peer.host, peer.port);
-                in = new DataInputStream(TCPSocket.getInputStream());
-                out = new DataOutputStream(TCPSocket.getOutputStream());
+    public Connection(HostPort peer){
 
-                // send Handshake request to other peers
-                out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-
-                String data = in.readUTF();
-                Document d = JsonUtils.decodeBase64toDocument(data);
-
-                if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                    peerInfo = new HostPort((Document) d.get("hostPort"));
-                    flagActive = true;
-
-                    Thread t = new Thread(this);
-                    t.start();
-                } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-                    in.close();
-                    out.close();
-                    TCPSocket.close();
-                    // TODO breath first search for other available peers
-                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
-                    if (!searchThroughPeers(peers)) {
-                        flagActive = false;
-                    }
-                }
-            } catch (UnknownHostException e) {
-                log.warning(e.getMessage());
-            } catch (EOFException e) {
-                log.warning(e.getMessage());
-            } catch (IOException e) {
-                log.warning(e.getMessage() + " " + peer.toString());
-            }
-        } else {
-            // UDP
-            try{
-                this.address = InetAddress.getByName(peer.host);
-                this.UDPSocket = new DatagramSocket();
-                // send Hand_shake
-                sendCommand(JsonUtils.HANDSHAKE_REQUEST(peerInfo));
-
-                UDPSocket.setSoTimeout(5 * 1000);
-                Document d = recieveUDPCommand();
-
-                if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                    peerInfo = new HostPort((Document) d.get("hostPort"));
-                    flagActive = true;
-                    UDPSocket.setSoTimeout(0);
-                    Thread t = new Thread(this);
-                    t.start();
-                } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-
-                    UDPSocket.close();
-                    // TODO breath first search for other available peers
-                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
-                    if (!searchThroughPeers(peers)) {
-                        flagActive = false;
-                    }
-                }
-
-            }catch(UnknownHostException e){
-                log.warning(e.getMessage());
-            }catch(SocketException e){
-                log.warning(e.getMessage());
-            }
-        }
-    }
-
-    public Connection(InetAddress addr, int port,Document d, UDPMain UDPmain){
 
         connectionInit();
-        this.UDPmain = UDPmain;
-        _mode = "UDP";
-        try {
-            this.UDPSocket = new DatagramSocket();
-            this.address = addr;
-            this.peerInfo = new HostPort(addr.getHostAddress(), port);
+        this.peerInfo = peer;
+        try{
+            aSocket = new Socket();
+            aSocket.connect(new InetSocketAddress(peer.host, peer.port), 5000);
+            in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
+            out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
-            if(d.getString("command").equals("HANDSHAKE_REQUEST")){
+            // send Handshake request to other peers
+            out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+            out.newLine();
+            out.flush();
+            aSocket.setSoTimeout(20*1000);
+            String data = in.readLine();
+            Document d = Document.parse(data);
 
-                // TODO get peerInfo
+            if(d.getString("command").equals("HANDSHAKE_RESPONSE")){
                 peerInfo = new HostPort((Document) d.get("hostPort"));
-
-                if(!this.TCPmain.maximumConnectionReached()){
-                    // available for connection, send HANDSHAKE RESPONSE
-                    sendCommand(JsonUtils.HANDSHAKE_RESPONSE());
-                    flagActive = true;
-
-                    // start the thread for the socket
-                    Thread t = new Thread(this);
-                    t.start();
-                }
-                else{
-                    // maximum connection reached
+                flagActive = true;
+                aSocket.setSoTimeout(0);
+                Thread t = new Thread(this);
+                t.start();
+            }
+            else if(d.getString("command").equals("CONNECTION_REFUSED")){
+                in.close();
+                out.close();
+                aSocket.close();
+                // TODO breath first search for other available peers
+                ArrayList<Document> peers = (ArrayList<Document>)d.get("peers");
+                if(!searchThroughPeers(peers)){
                     flagActive = false;
-                    // not available, stop the connection
-                    sendCommand(JsonUtils.CONNECTION_REFUSED(UDPmain,"Connection limit reached"));
                 }
             }
-
-        } catch(Exception e){
+        }catch(UnknownHostException e){
             log.warning(e.getMessage());
+            closeSocket();
+        }catch(EOFException e){
+            closeSocket();
+            log.warning(e.getMessage());
+        }catch(IOException e){
+            log.warning(e.getMessage() + " " + peer.toString());
+            closeSocket();
         }
     }
 
-    // Incoming connection -- TCP
-    public Connection(Socket aSocket, TCPMain TCPmain){
+    // Incoming connection
+    public Connection(Socket aSocket){
 
         connectionInit();
-        _mode = "TCP";
-        this.TCPmain = TCPmain;
 
         try{
-            this.TCPSocket = aSocket;
-            in = new DataInputStream(this.TCPSocket.getInputStream());
-            out = new DataOutputStream(this.TCPSocket.getOutputStream());
+            this.aSocket = aSocket;
+            in = new BufferedReader(new InputStreamReader(aSocket.getInputStream(), StandardCharsets.UTF_8));
+            out = new BufferedWriter(new OutputStreamWriter(aSocket.getOutputStream(), StandardCharsets.UTF_8));
 
             // TODO decode handshake message
-            String data = in.readUTF();
-            Document d = JsonUtils.decodeBase64toDocument(data);
+            String data = in.readLine();
+            Document d = Document.parse(data);
 
             if(d.getString("command").equals("HANDSHAKE_REQUEST")){
 
                 // TODO get peerInfo
                 peerInfo = new HostPort((Document) d.get("hostPort"));
 
-                if(!this.TCPmain.maximumConnectionReached()){
+                if(!TCPmain.maximumConnectionReached()){
                     // available for connection, send HANDSHAKE RESPONSE
-                    out.writeUTF(JsonUtils.HANDSHAKE_RESPONSE());
-
+                    out.write(JsonUtils.HANDSHAKE_RESPONSE());
+                    out.newLine();
                     flagActive = true;
 
                     // start the thread for the socket
@@ -534,11 +504,15 @@ public class Connection implements Runnable {
                     // maximum connection reached
                     flagActive = false;
                     // not available, stop the connection
-                    out.writeUTF(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
+                    out.write(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
+                    out.newLine();
+                    out.flush();
+                    closeSocket();
                 }
             }
         } catch(IOException e){
             log.warning(e.getMessage());
+            closeSocket();
         }
     }
 }

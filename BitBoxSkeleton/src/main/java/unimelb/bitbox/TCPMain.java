@@ -15,21 +15,17 @@ public class TCPMain {
     private HashMap<String, Connection> Incomming;
     private HashMap<String, Connection> Outgoing;
     private ServerSocket listenSocket;
-    //private DatagramSocket listenSocket;
-    byte[] buffer;
-
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
-    private TCPMain TCPHolder;
 
+    // listening for incoming connections
     private Thread server = new Thread(){
         @Override
         public void run(){
             while(serverActive){
                 try{
                     Socket incommingConnection = listenSocket.accept();
-                    //DatagramPacket request = new DatagramPacket(buffer, buffer.length);
-                    Connection c = new Connection(incommingConnection, TCPHolder);
+                    Connection c = new Connection(incommingConnection);
                     if(c.flagActive){
                         Incomming.put(c.getPeerInfo().toString(), c);
                     }
@@ -40,33 +36,37 @@ public class TCPMain {
         }
     };
 
+    // broadcast File system event to other peers
     private Thread communication = new Thread(){
         @Override
         public void run(){
             while(communicationActive){
                 // when eventBuffer is not empty, broadcast the command to all connected peers
-                while(eventBuffer.size() > 0){
-                    FileSystemEvent event = eventBuffer.poll();
-                    String command = translateEventToCommand(event);
-                    Incomming.forEach((key,value) -> value.sendCommand(command));
-                    Outgoing.forEach((key,value)->value.sendCommand(command));
+                synchronized (this) {
+                    while (eventBuffer.size() > 0) {
+                        FileSystemEvent event = eventBuffer.poll();
+                        log.info("broadcast command " + event.event);
+                        String command = translateEventToCommand(event);
+                        Incomming.forEach((key, value) -> value.sendCommand(command));
+                        Outgoing.forEach((key, value) -> value.sendCommand(command));
+                    }
                 }
             }
+
         }
     };
+
 
     public TCPMain(){
         // initalize the event buffer
         eventBuffer = new LinkedList<>();
         Incomming = new HashMap<>();
         Outgoing = new HashMap<>();
-        TCPHolder = this;
-        buffer = new byte[1000];
+        Connection.TCPmain = this;
 
         // initialize server socket
         try{
             listenSocket = new ServerSocket(JsonUtils.getSelfHostPort().port);
-            //listenSocket = new DatagramSocket(JsonUtils.getSelfHostPort().port);
         }catch(IOException e){
             log.warning(e.getMessage());
         }
@@ -78,7 +78,8 @@ public class TCPMain {
             // if connection does not exist
             if(!connectionExist(tmp)){
                 // try connect with the peer
-                Connection c = new Connection(tmp, "TCP");
+                Connection c = new Connection(tmp);
+                c.TCPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){
                     Outgoing.put(tmp.toString(), c);
@@ -103,6 +104,15 @@ public class TCPMain {
         return Incomming.size() < Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"))
                 ? false :
                 true;
+    }
+
+    public void removeConnection(String key){
+        if(Incomming.containsKey(key)){
+            Incomming.remove(key);
+        }
+        else if(Outgoing.containsKey(key)){
+            Outgoing.remove(key);
+        }
     }
 
     public ArrayList<String> getAllConnections(){
@@ -133,7 +143,10 @@ public class TCPMain {
         return null;
     }
 
+    // add event to eventBuffer
     public void addEvent(FileSystemEvent event){
-        this.eventBuffer.add(event);
+        synchronized (this) {
+            this.eventBuffer.add(event);
+        }
     }
 }
