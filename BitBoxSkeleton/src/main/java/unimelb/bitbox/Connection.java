@@ -29,6 +29,7 @@ public class Connection implements Runnable {
     private Socket aSocket;
     private HostPort peerInfo;
     public static TCPMain TCPmain;
+    public static UDPMain UDPmain;
     private ResponseHandler rh;
     private HashMap<String, ByteTransferTask> threadManager;
     private ExecutorService executor;
@@ -138,6 +139,9 @@ public class Connection implements Runnable {
 
     public void TCPmainPatch(TCPMain m){
         this.TCPmain = m;
+    }
+    public void UDPmainPatch(UDPMain m){
+        this.UDPmain = m;
     }
 
     // Main work goes here
