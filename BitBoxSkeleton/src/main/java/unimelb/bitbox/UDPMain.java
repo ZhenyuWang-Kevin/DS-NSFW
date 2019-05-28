@@ -16,7 +16,8 @@ public class UDPMain {
 	private static Logger log = Logger.getLogger(UDPMain.class.getName());
     private HashMap<String, Connection> Incomming;
     private HashMap<String, Connection> Outgoing;
-    private ServerSocket listenSocket;
+    //private ServerSocket listenSocket;
+    private DatagramSocket listenSocket;
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
     
@@ -26,17 +27,15 @@ public class UDPMain {
         public void run(){
             while(serverActive){
                 try{
-                	
-                	DatagramSocket ds=new DatagramSocket(10000);
+
                     byte [] buf=new byte[1024];
                     DatagramPacket dp=new DatagramPacket(buf,buf.length);
-                    ds.receive(dp);
+                    listenSocket.receive(dp);
                     String ip=dp.getAddress().getHostAddress();
                     int port=dp.getPort();
                     String data =new String(dp.getData(),0,dp.getLength());
                     InetAddress aHost = InetAddress.getByName(ip);
                     Document d = JsonUtils.decodeBase64toDocument(data);
-                    Socket incommingConnection = listenSocket.accept();
                     Connection c = new Connection(aHost,port,d);
                     
                     
@@ -78,7 +77,7 @@ public class UDPMain {
 
         // initialize server socket
         try{
-            listenSocket = new ServerSocket(JsonUtils.getSelfHostPort().port);
+            listenSocket = new DatagramSocket(JsonUtils.getSelfHostPort().port);
         }catch(IOException e){
             log.warning(e.getMessage());
         }
