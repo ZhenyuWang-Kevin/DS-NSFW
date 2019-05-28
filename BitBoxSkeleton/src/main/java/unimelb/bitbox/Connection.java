@@ -148,6 +148,24 @@ public class Connection implements Runnable {
         Document fdesc;
         log.info("received command: " + json.getString("command"));
         switch(json.getString("command")){
+            case "HANDSHAKE_RESPONSE":
+                if (json.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                    peerInfo = new HostPort((Document) json.get("hostPort"));
+                    flagActive = true;
+                    try {
+                        UDPSocket.setSoTimeout(0);
+                    } catch (Exception e){ log.warning(e.getMessage());}
+                    Thread t = new Thread(this);
+                    t.start();
+                } else if (json.getString("command").equals("CONNECTION_REFUSED")) {
+                    UDPSocket.close();
+                    // TODO breath first search for other available peers
+                    ArrayList<Document> peers = (ArrayList<Document>) json.get("peers");
+                    if (!searchThroughPeers(peers)) {
+                        flagActive = false;
+                    }
+                }
+                break;
             case "INVALID_PROTOCOL":
                 // TODO disconnect the connection
                 closeSocket();
@@ -486,22 +504,8 @@ public class Connection implements Runnable {
                 address = InetAddress.getByName(peerInfo.host);
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 UDPSocket.setSoTimeout(5 * 1000);
-                Document d = recieveUDPCommand();
+                //Document d = recieveUDPCommand();
 
-                if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                    peerInfo = new HostPort((Document) d.get("hostPort"));
-                    flagActive = true;
-                    UDPSocket.setSoTimeout(0);
-                    Thread t = new Thread(this);
-                    t.start();
-                } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-                    UDPSocket.close();
-                    // TODO breath first search for other available peers
-                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
-                    if (!searchThroughPeers(peers)) {
-                        flagActive = false;
-                    }
-                }
 
             }
         }catch(UnknownHostException e){
