@@ -519,7 +519,9 @@ public class Connection implements Runnable {
     public Connection(InetAddress addr, int port, Document d){
         connectionInit();
         mode = "UDP";
+
         try{
+            UDPSocket = new DatagramSocket();
             this.address = addr;
             this.peerInfo = new HostPort(addr.getHostAddress(), port);
 
