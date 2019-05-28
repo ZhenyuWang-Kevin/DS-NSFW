@@ -15,6 +15,9 @@ public class TCPMain {
     private HashMap<String, Connection> Incomming;
     private HashMap<String, Connection> Outgoing;
     private ServerSocket listenSocket;
+    //private DatagramSocket listenSocket;
+    byte[] buffer;
+
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
     private TCPMain TCPHolder;
@@ -25,6 +28,7 @@ public class TCPMain {
             while(serverActive){
                 try{
                     Socket incommingConnection = listenSocket.accept();
+                    //DatagramPacket request = new DatagramPacket(buffer, buffer.length);
                     Connection c = new Connection(incommingConnection, TCPHolder);
                     if(c.flagActive){
                         Incomming.put(c.getPeerInfo().toString(), c);
@@ -57,10 +61,12 @@ public class TCPMain {
         Incomming = new HashMap<>();
         Outgoing = new HashMap<>();
         TCPHolder = this;
+        buffer = new byte[1000];
 
         // initialize server socket
         try{
             listenSocket = new ServerSocket(JsonUtils.getSelfHostPort().port);
+            //listenSocket = new DatagramSocket(JsonUtils.getSelfHostPort().port);
         }catch(IOException e){
             log.warning(e.getMessage());
         }
@@ -72,7 +78,7 @@ public class TCPMain {
             // if connection does not exist
             if(!connectionExist(tmp)){
                 // try connect with the peer
-                Connection c = new Connection(tmp);
+                Connection c = new Connection(tmp, "TCP");
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){
                     Outgoing.put(tmp.toString(), c);

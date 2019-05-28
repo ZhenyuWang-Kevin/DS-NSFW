@@ -6,9 +6,7 @@ import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
 
 import java.io.*;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,13 +26,17 @@ public class Connection implements Runnable {
 
     private DataInputStream in;
     private DataOutputStream out;
-    private Socket aSocket;
+    private Socket TCPSocket;
+    private DatagramSocket UDPSocket;
     private HostPort peerInfo;
+    private InetAddress address;
     private TCPMain TCPmain;
+    private UDPMain UDPmain;
     private ResponseHandler rh;
     private boolean readyForBytesRequest;
     private HashMap<String, ByteTransferTask> threadManager;
     private ExecutorService executor;
+    private String _mode;
 
     public boolean flagActive;
 
@@ -243,9 +245,14 @@ public class Connection implements Runnable {
         while (true){
             // receive command
             try {
-                aSocket.setSoTimeout(0);
-                String data = in.readUTF();
-                receiveCommand(JsonUtils.decodeBase64toDocument(data));
+                if(_mode.equals("TCP")) {
+                    TCPSocket.setSoTimeout(0);
+                    String data = in.readUTF();
+                    receiveCommand(JsonUtils.decodeBase64toDocument(data));
+                } else {
+                    UDPSocket.setSoTimeout(0);
+                    receiveCommand(recieveUDPCommand());
+                }
             } catch (SocketTimeoutException e) {
                 // check for finished thread every 20sec, and remove any finished task class.
                 threadManager.forEach((key,value) -> {
@@ -262,9 +269,13 @@ public class Connection implements Runnable {
     // close the socket
     public void closeSocket(){
         try{
-            in.close();
-            out.close();
-            aSocket.close();
+            if(_mode.equals("TCP")) {
+                in.close();
+                out.close();
+                TCPSocket.close();
+            } else {
+                UDPSocket.close();
+            }
         }catch(IOException e){
             log.warning(e.getMessage());
         }
@@ -272,7 +283,12 @@ public class Connection implements Runnable {
 
     public void sendCommand(String base64Str){
         try{
-            out.writeUTF(base64Str);
+            if(_mode.equals("TCP")) {
+                out.writeUTF(base64Str);
+            } else{
+                DatagramPacket command = new DatagramPacket(base64Str.getBytes(), base64Str.length(), address, peerInfo.port);
+                UDPSocket.send(command);
+            }
         }catch(IOException e){
             log.warning(e.getMessage());
         }
@@ -285,6 +301,18 @@ public class Connection implements Runnable {
 
     public HostPort getPeerInfo(){
         return peerInfo;
+    }
+
+    public Document recieveUDPCommand(){
+        byte[] buffer = new byte[8192];
+        DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
+        try {
+            this.UDPSocket.receive(reply);
+            return JsonUtils.decodeBase64toDocument(new String(reply.getData()));
+        }catch(Exception e){
+            log.warning(e.getMessage());
+        }
+        return JsonUtils.decodeBase64toDocument(JsonUtils.INVALID_PROTOCOL("Exception error"));
     }
 
     // when peers reached maximum connection, search for its adjacent peers and trying to connect
@@ -303,29 +331,54 @@ public class Connection implements Runnable {
             if(!TCPmain.connectionExist(peer)) {
 
                 try {
-                    aSocket = new Socket(peer.host, peer.port);
-                    in = new DataInputStream(aSocket.getInputStream());
-                    out = new DataOutputStream(aSocket.getOutputStream());
+                    if(_mode.equals("TCP")) {
+                        TCPSocket = new Socket(peer.host, peer.port);
+                        in = new DataInputStream(TCPSocket.getInputStream());
+                        out = new DataOutputStream(TCPSocket.getOutputStream());
 
-                    // send Handshake request to other peers
-                    out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                        // send Handshake request to other peers
+                        out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
 
-                    String data = in.readUTF();
-                    Document d = JsonUtils.decodeBase64toDocument(data);
+                        String data = in.readUTF();
+                        Document d = JsonUtils.decodeBase64toDocument(data);
 
-                    if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                        peerInfo = new HostPort((Document) d.get("hostPort"));
-                        flagActive = true;
-                        connectionEstablished = true;
+                        if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                            peerInfo = new HostPort((Document) d.get("hostPort"));
+                            flagActive = true;
+                            connectionEstablished = true;
 
-                        Thread t = new Thread(this);
-                        t.start();
-                    } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-                        // TODO breath first search for other available peers
-                        peers.addAll((ArrayList<Document>) d.get("peers"));
-                        in.close();
-                        out.close();
-                        aSocket.close();
+                            Thread t = new Thread(this);
+                            t.start();
+                        } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                            // TODO breath first search for other available peers
+                            peers.addAll((ArrayList<Document>) d.get("peers"));
+                            in.close();
+                            out.close();
+                            TCPSocket.close();
+                        }
+                    } else {
+
+                        UDPSocket = new DatagramSocket();
+
+                        sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+
+                        UDPSocket.setSoTimeout(5*1000);
+                        Document d = recieveUDPCommand();
+
+                        if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                            peerInfo = new HostPort((Document) d.get("hostPort"));
+                            flagActive = true;
+                            connectionEstablished = true;
+
+                            Thread t = new Thread(this);
+                            t.start();
+                        } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                            // TODO breath first search for other available peers
+                            peers.addAll((ArrayList<Document>) d.get("peers"));
+                            in.close();
+                            out.close();
+                            UDPSocket.close();
+                        }
                     }
                 } catch (IOException e) {
                     log.warning(e.getMessage() + " " + peer.toString());
@@ -335,59 +388,128 @@ public class Connection implements Runnable {
         return true;
     }
 
-    public Connection(HostPort peer){
-
-
+    public Connection(HostPort peer, String mode){
         connectionInit();
+        this._mode = mode;
+        if(mode.equals("TCP")) {
+            // TCP
+            try {
+                this.TCPSocket = new Socket(peer.host, peer.port);
+                in = new DataInputStream(TCPSocket.getInputStream());
+                out = new DataOutputStream(TCPSocket.getOutputStream());
 
-        try{
-            aSocket = new Socket(peer.host, peer.port);
-            in = new DataInputStream(aSocket.getInputStream());
-            out = new DataOutputStream(aSocket.getOutputStream());
+                // send Handshake request to other peers
+                out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
 
-            // send Handshake request to other peers
-            out.writeUTF(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                String data = in.readUTF();
+                Document d = JsonUtils.decodeBase64toDocument(data);
 
-            String data = in.readUTF();
-            Document d = JsonUtils.decodeBase64toDocument(data);
+                if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                    peerInfo = new HostPort((Document) d.get("hostPort"));
+                    flagActive = true;
 
-            if(d.getString("command").equals("HANDSHAKE_RESPONSE")){
-                peerInfo = new HostPort((Document) d.get("hostPort"));
-                flagActive = true;
-
-                Thread t = new Thread(this);
-                t.start();
-            }
-            else if(d.getString("command").equals("CONNECTION_REFUSED")){
-                in.close();
-                out.close();
-                aSocket.close();
-                // TODO breath first search for other available peers
-                ArrayList<Document> peers = (ArrayList<Document>)d.get("peers");
-                if(!searchThroughPeers(peers)){
-                    flagActive = false;
+                    Thread t = new Thread(this);
+                    t.start();
+                } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                    in.close();
+                    out.close();
+                    TCPSocket.close();
+                    // TODO breath first search for other available peers
+                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
+                    if (!searchThroughPeers(peers)) {
+                        flagActive = false;
+                    }
                 }
+            } catch (UnknownHostException e) {
+                log.warning(e.getMessage());
+            } catch (EOFException e) {
+                log.warning(e.getMessage());
+            } catch (IOException e) {
+                log.warning(e.getMessage() + " " + peer.toString());
             }
-        }catch(UnknownHostException e){
-            log.warning(e.getMessage());
-        }catch(EOFException e){
-            log.warning(e.getMessage());
-        }catch(IOException e){
-            log.warning(e.getMessage() + " " + peer.toString());
+        } else {
+            // UDP
+            try{
+                this.address = InetAddress.getByName(peer.host);
+                this.UDPSocket = new DatagramSocket();
+                // send Hand_shake
+                sendCommand(JsonUtils.HANDSHAKE_REQUEST(peerInfo));
+
+                UDPSocket.setSoTimeout(5 * 1000);
+                Document d = recieveUDPCommand();
+
+                if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                    peerInfo = new HostPort((Document) d.get("hostPort"));
+                    flagActive = true;
+                    UDPSocket.setSoTimeout(0);
+                    Thread t = new Thread(this);
+                    t.start();
+                } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+
+                    UDPSocket.close();
+                    // TODO breath first search for other available peers
+                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
+                    if (!searchThroughPeers(peers)) {
+                        flagActive = false;
+                    }
+                }
+
+            }catch(UnknownHostException e){
+                log.warning(e.getMessage());
+            }catch(SocketException e){
+                log.warning(e.getMessage());
+            }
         }
     }
 
-    // Incoming connection
+    public Connection(InetAddress addr, int port,Document d, UDPMain UDPmain){
+
+        connectionInit();
+        this.UDPmain = UDPmain;
+        _mode = "UDP";
+        try {
+            this.UDPSocket = new DatagramSocket();
+            this.address = addr;
+            this.peerInfo = new HostPort(addr.getHostAddress(), port);
+
+            if(d.getString("command").equals("HANDSHAKE_REQUEST")){
+
+                // TODO get peerInfo
+                peerInfo = new HostPort((Document) d.get("hostPort"));
+
+                if(!this.TCPmain.maximumConnectionReached()){
+                    // available for connection, send HANDSHAKE RESPONSE
+                    sendCommand(JsonUtils.HANDSHAKE_RESPONSE());
+                    flagActive = true;
+
+                    // start the thread for the socket
+                    Thread t = new Thread(this);
+                    t.start();
+                }
+                else{
+                    // maximum connection reached
+                    flagActive = false;
+                    // not available, stop the connection
+                    sendCommand(JsonUtils.CONNECTION_REFUSED(UDPmain,"Connection limit reached"));
+                }
+            }
+
+        } catch(Exception e){
+            log.warning(e.getMessage());
+        }
+    }
+
+    // Incoming connection -- TCP
     public Connection(Socket aSocket, TCPMain TCPmain){
 
         connectionInit();
-
+        _mode = "TCP";
         this.TCPmain = TCPmain;
 
         try{
-            this.aSocket = aSocket;
-            in = new DataInputStream(this.aSocket.getInputStream());
-            out = new DataOutputStream(this.aSocket.getOutputStream());
+            this.TCPSocket = aSocket;
+            in = new DataInputStream(this.TCPSocket.getInputStream());
+            out = new DataOutputStream(this.TCPSocket.getOutputStream());
 
             // TODO decode handshake message
             String data = in.readUTF();
@@ -413,9 +535,6 @@ public class Connection implements Runnable {
                     flagActive = false;
                     // not available, stop the connection
                     out.writeUTF(JsonUtils.CONNECTION_REFUSED(TCPmain, "connection limit reached"));
-                    in.close();
-                    out.close();
-                    aSocket.close();
                 }
             }
         } catch(IOException e){

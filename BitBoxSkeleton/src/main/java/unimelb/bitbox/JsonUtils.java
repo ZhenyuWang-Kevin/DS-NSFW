@@ -69,6 +69,22 @@ public class JsonUtils {
     }
 
     /**
+     * CONNECTION REFUSED
+     * @param UDPmain
+     * @param msg
+     * @return
+     */
+    public static String CONNECTION_REFUSED(UDPMain UDPmain, String msg){
+        Document d = new Document();
+
+        d.append("comamnd", "CONNECTION_REFUSED");
+        d.append("message", msg);
+        d.append("peers", UDPmain.getAllConnections());
+
+        return base64encodedCommand(d.toJson());
+    }
+
+    /**
      * HANDSHAKE REQUEST
      * @param p a HostPort object contains the host and port info of the peer
      * @return base64 encoded json string
