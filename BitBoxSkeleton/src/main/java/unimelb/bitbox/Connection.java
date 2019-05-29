@@ -350,7 +350,7 @@ public class Connection implements Runnable {
                         byte[] buffer = new byte[1000];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
-                        String data = new String(buf.getData());
+                        String data = new String(buf.getData(),0,buf.getLength());
                         if(data.equals("")){
                             log.info("disconnect with " + peerInfo.toString());
                             flagActive = false;
@@ -451,7 +451,7 @@ public class Connection implements Runnable {
                         out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                         out.newLine();
                         out.flush();
-                        TCPSocket.setSoTimeout(20 * 1000);
+                        TCPSocket.setSoTimeout(3 * 1000);
                         String data = in.readLine();
                         Document d = Document.parse(data);
 
@@ -478,7 +478,7 @@ public class Connection implements Runnable {
                         UDPSocket = new DatagramSocket();
                         sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                         // send Handshake request to other peers
-                        UDPSocket.setSoTimeout(20 * 1000);
+                        UDPSocket.setSoTimeout(3 * 1000);
                         byte[] buffer = new byte[1000];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
@@ -525,7 +525,7 @@ public class Connection implements Runnable {
                 out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 out.newLine();
                 out.flush();
-                TCPSocket.setSoTimeout(700 * 1000);
+                TCPSocket.setSoTimeout(3 * 1000);
                 String data = in.readLine();
                 Document d = Document.parse(data);
 
@@ -549,7 +549,7 @@ public class Connection implements Runnable {
                 UDPSocket = new DatagramSocket();
                 address = InetAddress.getByName(peerInfo.host);
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-                UDPSocket.setSoTimeout(500 * 1000);
+                UDPSocket.setSoTimeout(3 * 1000);
                 byte[] buffer = new byte[10000];
                 DatagramPacket command = new DatagramPacket(buffer, buffer.length);
                 UDPSocket.receive(command);
