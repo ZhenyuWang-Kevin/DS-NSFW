@@ -17,10 +17,6 @@ public class Peer
         Configuration.getConfiguration();
         
         new ServerMain();
-
-
-
-        // Store all the clients in a list
         
     }
 }

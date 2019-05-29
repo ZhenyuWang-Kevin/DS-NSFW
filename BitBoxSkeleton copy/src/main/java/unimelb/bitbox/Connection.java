@@ -298,23 +298,6 @@ public class Connection implements Runnable {
                 rh.receivedDirectoryDeleteResponse(json);
                 break;
 
-
-
-            //+++++++++++++new added+++++++++++++++++//
-
-
-
-
-
-            //+++++++++++++new added+++++++++++++++++//
-
-
-
-
-
-
-
-
             default:
                 sendCommand(JsonUtils.INVALID_PROTOCOL("Invalid command!!"));
                 closeSocket();
