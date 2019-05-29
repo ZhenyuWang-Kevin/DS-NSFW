@@ -25,6 +25,7 @@ public class Connection implements Runnable {
     private BufferedWriter out;
     private Socket TCPSocket;
     private HostPort peerInfo;
+    private int peerPort;
     public static TCPMain TCPmain;
     public static UDPMain UDPmain;
     private ResponseHandler rh;
@@ -148,24 +149,6 @@ public class Connection implements Runnable {
         Document fdesc;
         log.info("received command: " + json.getString("command"));
         switch(json.getString("command")){
-            case "HANDSHAKE_RESPONSE":
-                if (json.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                    peerInfo = new HostPort((Document) json.get("hostPort"));
-                    flagActive = true;
-                    try {
-                        UDPSocket.setSoTimeout(0);
-                    } catch (Exception e){ log.warning(e.getMessage());}
-                    Thread t = new Thread(this);
-                    t.start();
-                } else if (json.getString("command").equals("CONNECTION_REFUSED")) {
-                    UDPSocket.close();
-                    // TODO breath first search for other available peers
-                    ArrayList<Document> peers = (ArrayList<Document>) json.get("peers");
-                    if (!searchThroughPeers(peers)) {
-                        flagActive = false;
-                    }
-                }
-                break;
             case "INVALID_PROTOCOL":
                 // TODO disconnect the connection
                 closeSocket();
@@ -309,6 +292,7 @@ public class Connection implements Runnable {
         rh = new ResponseHandler(this);
         this.threadManager = new HashMap<>();
         this.executor = Executors.newCachedThreadPool();
+        peerPort = -1;
     }
 
     public void run() {
@@ -343,22 +327,40 @@ public class Connection implements Runnable {
         while (flagActive){
             synchronized (this) {
                 // receive command
-                try {
+                if (mode.equals("TCP")) {
+                    try {
 
-                    String data = in.readLine();
-                    if(data == null){
-                        log.info("disconnect with " + peerInfo.toString());
+                        String data = in.readLine();
+                        if (data == null) {
+                            log.info("disconnect with " + peerInfo.toString());
+                            closeSocket();
+                            flagActive = false;
+                        } else {
+                            log.info("receiving data: " + data);
+                            receiveCommand(Document.parse(data));
+                        }
+
+                    } catch (IOException e) {
+                        log.warning(e.getMessage() + this.peerInfo);
                         closeSocket();
-                        flagActive = false;
-                    }else {
-                        log.info("receiving data: " + data);
-                        receiveCommand(Document.parse(data));
+
                     }
-
-                } catch (IOException e) {
-                    log.warning(e.getMessage() + this.peerInfo);
-                    closeSocket();
-
+                } else {
+                    try{
+                        byte[] buffer = new byte[1000];
+                        DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
+                        UDPSocket.receive(buf);
+                        String data = new String(buf.getData());
+                        if(data.equals("")){
+                            log.info("disconnect with " + peerInfo.toString());
+                            flagActive = false;
+                        } else {
+                            log.info("receiving data: " + data);
+                            receiveCommand(Document.parse(data));
+                        }
+                    } catch(IOException e){
+                        log.warning(e.getMessage());
+                    }
                 }
             }
         }
@@ -369,7 +371,10 @@ public class Connection implements Runnable {
         try{
             flagActive = false;
             log.info("Disconnect with " + peerInfo.toString());
-            TCPmain.removeConnection(peerInfo.toString());
+            if(mode.equals("TCP"))
+                TCPmain.removeConnection(peerInfo.toString());
+            else
+                UDPmain.removeConnection(peerInfo.toString());
             if(in != null)
                 in.close();
             if(out != null)
@@ -391,8 +396,14 @@ public class Connection implements Runnable {
                     out.newLine();
                     out.flush();
                 } else {
-                    DatagramPacket command = new DatagramPacket(base64Str.getBytes(), base64Str.length(), address, peerInfo.port);
-                    UDPSocket.send(command);
+                    if(peerPort == -1) {
+                        DatagramPacket command = new DatagramPacket(base64Str.getBytes(), base64Str.length(), address, peerInfo.port);
+                        UDPSocket.send(command);
+                    } else{
+                        DatagramPacket command = new DatagramPacket(base64Str.getBytes(), base64Str.length(), address, peerPort);
+                        UDPSocket.send(command);
+                    }
+
                 }
             } catch (IOException e) {
                 log.warning(e.getMessage());
@@ -417,52 +428,87 @@ public class Connection implements Runnable {
 
     // when peers reached maximum connection, search for its adjacent peers and trying to connect
     // Huge chunk of private code, don't bother read through it.
-    private boolean searchThroughPeers(ArrayList<Document> _peers){
+    private boolean searchThroughPeers(ArrayList<Document> _peers) {
         ArrayList<Document> peers = _peers;
 
         boolean connectionEstablished = false;
 
-        while(!connectionEstablished){
-            if(peers.size() == 0){
+        while (!connectionEstablished) {
+            if (peers.size() == 0) {
                 return false;
             }
             HostPort peer = new HostPort(peers.remove(0));
 
-            if(!TCPmain.connectionExist(peer)) {
+            if (mode.equals("TCP")) {
+                if (!TCPmain.connectionExist(peer)) {
 
-                try {
-                    TCPSocket = new Socket(peer.host, peer.port);
-                    in = new BufferedReader(new InputStreamReader(TCPSocket.getInputStream(), StandardCharsets.UTF_8));
-                    out = new BufferedWriter(new OutputStreamWriter(TCPSocket.getOutputStream(), StandardCharsets.UTF_8));
+                    try {
+                        TCPSocket = new Socket(peer.host, peer.port);
+                        in = new BufferedReader(new InputStreamReader(TCPSocket.getInputStream(), StandardCharsets.UTF_8));
+                        out = new BufferedWriter(new OutputStreamWriter(TCPSocket.getOutputStream(), StandardCharsets.UTF_8));
 
-                    // send Handshake request to other peers
-                    out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-                    out.newLine();
-                    out.flush();
-                    TCPSocket.setSoTimeout(20*1000);
-                    String data = in.readLine();
-                    Document d = Document.parse(data);
+                        // send Handshake request to other peers
+                        out.write(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                        out.newLine();
+                        out.flush();
+                        TCPSocket.setSoTimeout(20 * 1000);
+                        String data = in.readLine();
+                        Document d = Document.parse(data);
 
-                    if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
-                        peerInfo = new HostPort((Document) d.get("hostPort"));
-                        flagActive = true;
-                        connectionEstablished = true;
+                        if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                            peerInfo = new HostPort((Document) d.get("hostPort"));
+                            flagActive = true;
+                            connectionEstablished = true;
 
-                        Thread t = new Thread(this);
-                        t.start();
-                    } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
-                        // TODO breath first search for other available peers
-                        peers.addAll((ArrayList<Document>) d.get("peers"));
-                        closeSocket();
+                            Thread t = new Thread(this);
+                            t.start();
+                        } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                            // TODO breath first search for other available peers
+                            peers.addAll((ArrayList<Document>) d.get("peers"));
+                            closeSocket();
+                        }
+                    } catch (IOException e) {
+                        log.warning(e.getMessage() + " " + peer.toString());
                     }
-                } catch (IOException e) {
-                    log.warning(e.getMessage() + " " + peer.toString());
+                }
+            } else {
+                if (!UDPmain.connectionExist(peer)) {
+
+                    try {
+                        UDPSocket = new DatagramSocket();
+                        sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
+                        // send Handshake request to other peers
+                        UDPSocket.setSoTimeout(20 * 1000);
+                        byte[] buffer = new byte[1000];
+                        DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
+                        UDPSocket.receive(buf);
+                        String data = new String(buf.getData());
+                        Document d = Document.parse(data);
+
+                        if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                            peerInfo = new HostPort((Document) d.get("hostPort"));
+                            peerPort = buf.getPort();
+                            flagActive = true;
+                            connectionEstablished = true;
+
+                            Thread t = new Thread(this);
+                            t.start();
+
+                        } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                            // TODO breath first search for other available peers
+                            peers.addAll((ArrayList<Document>) d.get("peers"));
+                            closeSocket();
+                        }
+                    } catch (IOException e) {
+                        log.warning(e.getMessage() + " " + peer.toString());
+                    }
                 }
             }
         }
         return true;
     }
 
+    // establish connection with other peers
     public Connection(HostPort peer, String mode){
 
         this.mode = mode;
@@ -504,8 +550,26 @@ public class Connection implements Runnable {
                 address = InetAddress.getByName(peerInfo.host);
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 UDPSocket.setSoTimeout(5 * 1000);
-                //Document d = recieveUDPCommand();
+                byte[] buffer = new byte[10000];
+                DatagramPacket command = new DatagramPacket(buffer, buffer.length);
+                UDPSocket.receive(command);
+                Document d = Document.parse(new String(command.getData()));
 
+                if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
+                    peerInfo = new HostPort((Document) d.get("hostPort"));
+                    flagActive = true;
+                    UDPSocket.setSoTimeout(0);
+                    peerPort = command.getPort();
+                    Thread t = new Thread(this);
+                    t.start();
+                } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
+                    UDPSocket.close();
+                    // TODO breath first search for other available peers
+                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
+                    if (!searchThroughPeers(peers)) {
+                        flagActive = false;
+                    }
+                }
 
             }
         }catch(UnknownHostException e){

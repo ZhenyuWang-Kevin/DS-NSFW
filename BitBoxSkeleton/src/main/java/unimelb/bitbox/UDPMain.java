@@ -37,18 +37,11 @@ public class UDPMain {
                     InetAddress aHost = InetAddress.getByName(ip);
                     HostPort key = new HostPort(ip, port);
                     Document d = JsonUtils.decodeBase64toDocument(data);
-                    if(Incomming.containsKey(key)){
-                        Incomming.get(key).receiveCommand(d);
-                    } else if(Outgoing.containsKey(key)) {
-                        Outgoing.get(key).receiveCommand(d);
-                    } else {
-
-                        Connection c = new Connection(aHost, port, d);
-
-
-                        if (c.flagActive) {
-                            Incomming.put(c.getPeerInfo().toString(), c);
-                        }
+                    Connection c = new Connection(aHost,port,d);
+                    
+                    
+                    if(c.flagActive){
+                        Incomming.put(c.getPeerInfo().toString(), c);
                     }
                 }catch(IOException e){
                     log.warning(e.getMessage());
@@ -83,9 +76,10 @@ public class UDPMain {
         Incomming = new HashMap<>();
         Outgoing = new HashMap<>();
 
+        Connection.UDPmain = this;
         // initialize server socket
         try{
-            listenSocket = new DatagramSocket(JsonUtils.getSelfHostPort().port);
+            listenSocket = new DatagramSocket(Integer.parseInt(Configuration.getConfigurationValue("port")));
         }catch(IOException e){
             log.warning(e.getMessage());
         }
