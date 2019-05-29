@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="args4j">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/src/args4j.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/src/args4j.jar!/OSGI-OPT/src" />
+    </SOURCES>
+  </library>
+</component>

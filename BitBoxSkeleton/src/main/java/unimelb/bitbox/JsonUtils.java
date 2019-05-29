@@ -353,7 +353,7 @@ public class JsonUtils {
      * @param status
      * @return
      */
-    public static String AUTH_RESPONSE_TRUE(String encrKey,boolean status){
+    public static String AUTH_RESPONSE_TRUE(String encrKey,String idt, boolean status){
         Document d = new Document();
         d.append("AES128", "AUTH_RESPONSE");
         d.append("identity", idt);
