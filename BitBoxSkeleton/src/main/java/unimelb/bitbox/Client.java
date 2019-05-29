@@ -6,60 +6,59 @@ import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Configuration;
 
-//import lib.args4j.org.kohsuke.args4j.CmdLineParser;
-
-
-
 public class Client
 {
+    private static String operation;
+    private static String serverPort;
+    private static String clientPort;
+    private static String identityName;
 
-	private static Logger log = Logger.getLogger(Client.class.getName());
-    public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
-    {
-
-
-        /*
-
-
-        //Object that will store the parsed command line arguments
-        CmdLineArgs argsBean = new CmdLineArgs();
+    private static Logger log = Logger.getLogger(Client.class.getName());
+    public static void main( String[] args ) {
 
 
-        //Parser provided by args4j
-        CmdLineParser parser = new CmdLineParser(argsBean);
-        try {
+        for (int i = 0; i < args.length; i++){
+
+            //list_peers, connect_peer, disconnect_peer
+            if(args[i].equals("-c")){
+                operation = args[i+1];
+            }
+
+            //e.g. server.com:3000
+            if(args[i].equals("-s")){
+                serverPort = args[i+1].substring(args[i+1].indexOf(':'),args[i+1].length());
+                System.out.println("ServerPort: " + serverPort);
+            }
+
+            //e.g.  bigdata.cis.unimelb.edu.au:8500
+            if(args[i].equals("-p")){
+                clientPort = args[i+1].substring(args[i+1].indexOf(':'),args[i+1].length());
+                System.out.println("clientPort: " + clientPort);
+            }
 
 
-            //Parse the arguments
-            parser.parseArgument(args);
+            //e.g. aaron@krusty
+            if(args[i].equals("-i")){
+                identityName = args[i+1];
+                System.out.println("identify Name: " + identityName);
+            }
 
-
-            //After parsing, the fields in argsBean have been updated with the given
-            //command line arguments
-            System.out.println("Operation: " + argsBean.getOperation());
-            System.out.println("ServerPort: " + argsBean.getServerPort());
-
-
-        } catch (CmdLineException e) {
-
-            System.err.println(e.getMessage());
-
-            //Print the usage to help the user understand the arguments expected
-            //by the program
-            parser.printUsage(System.err);
         }
 
-        /*
+
+    /*
 
         //This is peers' command
         //java -cp bitbox.jar unimelb.bitbox.Peer
     	System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
+
+
+*/
+
+
         log.info("BitBox Client starting...");
         Configuration.getConfiguration();
-
-        */
-
 
         new Peer();
         //new ServerMain();
