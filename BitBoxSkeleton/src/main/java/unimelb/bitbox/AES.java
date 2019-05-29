@@ -61,27 +61,24 @@ public class AES {
 //
 //        // cipher method in "alogorithm/mode/padding"
 //        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-//        cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
-//        byte[] encrypted = cipher.doFinal(sMsg.getBytes("utf-8"));
 
         byte[] encrypted = null;
         // Encrypt first
         Key aesKey = new SecretKeySpec(sKey.getBytes(), "AES");
         try {
+            // TODO: add padding/ or not??
+//            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             Cipher cipher = Cipher.getInstance("AES");
             // Perform encryption
             cipher.init(Cipher.ENCRYPT_MODE, aesKey);
             encrypted = cipher.doFinal(sMsg.getBytes("UTF-8"));
-//            System.err.println("Encrypted text: "+new String(encrypted));
-//            output.writeUTF(Base64.getEncoder().encodeToString(encrypted));
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        return Base64.getEncoder().encodeToString(encrypted);
         // encoding using base64
-//        return new Base64().encodeToString(encrypted);
+        return Base64.getEncoder().encodeToString(encrypted);
 
     }
 
@@ -101,36 +98,6 @@ public class AES {
         }
 
         return message;
-
-//        try {
-//            if (sKey == null) {
-//                log.warning("key cannot be null!");
-//                return null;
-//            }
-//
-//            if (sKey.length() != 16) {
-//                log.warning("length of key is not 16!");
-//                return null;
-//            }
-//            byte[] raw = sKey.getBytes("utf-8");
-//            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-//            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-//            cipher.init(Cipher.DECRYPT_MODE, skeySpec);
-//
-//            // use base64 to decode first
-//            byte[] encrypted1 = new Base64().decode(sMsg);
-//            try {
-//                byte[] original = cipher.doFinal(encrypted1);
-//                String originalString = new String(original,"utf-8");
-//                return originalString;
-//            } catch (Exception e) {
-//                System.out.println(e.toString());
-//                return null;
-//            }
-//        } catch (Exception ex) {
-//            System.out.println(ex.toString());
-//            return null;
-//        }
 
     }
 
