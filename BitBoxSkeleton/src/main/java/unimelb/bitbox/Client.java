@@ -6,12 +6,7 @@ import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Configuration;
 
-//import org.kohsuke.args4j.CmdLineParser;
-
-
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
+//import lib.args4j.org.kohsuke.args4j.CmdLineParser;
 
 
 
@@ -21,7 +16,10 @@ public class Client
 	private static Logger log = Logger.getLogger(Client.class.getName());
     public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
     {
-/*
+
+
+        /*
+
 
         //Object that will store the parsed command line arguments
         CmdLineArgs argsBean = new CmdLineArgs();
@@ -65,6 +63,6 @@ public class Client
 
         new Peer();
         //new ServerMain();
-        
+
     }
 }

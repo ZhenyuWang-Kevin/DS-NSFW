@@ -64,34 +64,36 @@ public class AES {
 //        cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
 //        byte[] encrypted = cipher.doFinal(sMsg.getBytes("utf-8"));
 
-
+        byte[] encrypted = null;
         // Encrypt first
         Key aesKey = new SecretKeySpec(sKey.getBytes(), "AES");
         try {
             Cipher cipher = Cipher.getInstance("AES");
             // Perform encryption
             cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-            byte[] encrypted = cipher.doFinal(sMsg.getBytes("UTF-8"));
+            encrypted = cipher.doFinal(sMsg.getBytes("UTF-8"));
 //            System.err.println("Encrypted text: "+new String(encrypted));
 //            output.writeUTF(Base64.getEncoder().encodeToString(encrypted));
+
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
+        return Base64.getEncoder().encodeToString(encrypted);
         // encoding using base64
 //        return new Base64().encodeToString(encrypted);
-        return Base64.getEncoder().encodeToString(encrypted);
+
     }
 
     public static String Decrypt(String sMsg, String sKey) throws Exception {
-
+        String message = null;
         // Decrypt result
         try {
             Key aesKey = new SecretKeySpec(sKey.getBytes(), "AES");
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.DECRYPT_MODE, aesKey);
             message = new String(cipher.doFinal(Base64.getDecoder().decode(sMsg.getBytes())));
+
 
         } catch (Exception e) {
             // TODO Auto-generated catch block

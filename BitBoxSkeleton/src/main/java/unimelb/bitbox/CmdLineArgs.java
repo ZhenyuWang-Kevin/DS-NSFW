@@ -15,12 +15,11 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 
-//This class is modified depends on Tutorial 10
-//This class is where the arguments read from the command line will be stored
-//Declare one field for each argument and use the @Option annotation to link the field
-//to the argument name, args4J will parse the arguments and based on the name,
-//it will automatically update the field with the parsed argument value
+
 public class CmdLineArgs {
+
+
+
 
 
 
