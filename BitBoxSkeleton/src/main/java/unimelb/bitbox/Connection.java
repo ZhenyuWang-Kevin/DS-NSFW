@@ -61,7 +61,7 @@ public class Connection implements Runnable {
             taskType = type;
             this.rh = rh;
             this.c = c;
-            this.timeOutThreshold = 30*1000;
+            this.timeOutThreshold = 3000*1000;
             this.timer = 0;
         }
 
@@ -87,9 +87,10 @@ public class Connection implements Runnable {
                             positionTracker += doc.getLong("length");
                             if (remainingFileSize > 0) {
                                 // TODO send next byte request
+                                int size = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
                                 Document fD = (Document) doc.get("fileDescriptor");
                                 FileSystemManager.FileDescriptor fDescriptor = ResponseHandler.fManager.new FileDescriptor(fD.getLong("lastModified"), fD.getString("md5"), fD.getLong("fileSize"));
-                                c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor, doc.getString("pathName"), positionTracker, Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
+                                c.sendCommand(JsonUtils.FILE_BYTES_REQUEST(fDescriptor, doc.getString("pathName"), positionTracker, remainingFileSize >= size ? size : remainingFileSize ));
                             }
                             doc = null;
                         } else if (taskType == 1) {

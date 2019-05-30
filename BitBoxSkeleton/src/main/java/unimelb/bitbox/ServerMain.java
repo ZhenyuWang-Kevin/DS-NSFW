@@ -23,7 +23,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		timer = 0;
 		ResponseHandler.fManager = fileSystemManager;
-		Connection.blockSize = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
+		Connection.blockSize = Integer.parseInt(Configuration.getConfigurationValue("blockSize")) + 5000;
 
 		mode = Configuration.getConfigurationValue("mode");
 		if(mode.equals("tcp")) {
