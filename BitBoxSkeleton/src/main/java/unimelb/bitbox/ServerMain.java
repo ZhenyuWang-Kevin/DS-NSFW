@@ -64,6 +64,13 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		}
 	}
 
+	public void clearAllConnection(){
+		if(mode.equals("tcp"))
+			TCP.disconnectAll();
+		else
+			UDP.disconnectAll();
+	}
+
 	/**
 	 * Connect with the peer
 	 * @param ip    ip address

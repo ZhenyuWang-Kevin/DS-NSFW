@@ -103,6 +103,7 @@ public class TCPMain {
     }
 
 
+
     public TCPMain(){
         // initalize the event buffer
         eventBuffer = new LinkedList<>();
@@ -161,6 +162,11 @@ public class TCPMain {
         else if(Outgoing.containsKey(key)){
             Outgoing.remove(key);
         }
+    }
+
+    public void disconnectAll(){
+        Incomming.forEach((key, value) -> value.closeSocket());
+        Outgoing.forEach((key,value) -> value.closeSocket());
     }
 
     public ArrayList<String> getAllConnections(){

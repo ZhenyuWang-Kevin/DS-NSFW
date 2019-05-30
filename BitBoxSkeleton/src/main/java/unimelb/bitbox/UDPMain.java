@@ -37,13 +37,27 @@ public class UDPMain {
                     int port=dp.getPort();
                     String data =new String(dp.getData(),0,dp.getLength());
                     InetAddress aHost = InetAddress.getByName(ip);
-                    HostPort key = new HostPort(ip, port);
+
                     Document d = JsonUtils.decodeBase64toDocument(data);
-                    Connection c = new Connection(aHost,port,d);
-                    
-                    
-                    if(c.flagActive){
-                        Incomming.put(c.getPeerInfo().toString(), c);
+
+                    HostPort key = new HostPort((Document) d.get("hostPort"));
+
+                    if(d.getString("command").equals("HANDSHAKE_REQUEST")) {
+
+                        if (connectionExist(key)) {
+                            if (Incomming.containsKey(key.toString())) {
+                                Incomming.get(key).updatePort(port);
+                            } else {
+                                Outgoing.get(key).updatePort(port);
+                            }
+                        } else {
+
+                            Connection c = new Connection(aHost, port, d);
+
+                            if (c.flagActive) {
+                                Incomming.put(c.getPeerInfo().toString(), c);
+                            }
+                        }
                     }
                 }catch(IOException e){
                     log.warning(e.getMessage());
@@ -179,6 +193,11 @@ public class UDPMain {
         else if(Outgoing.containsKey(key)){
             Outgoing.remove(key);
         }
+    }
+
+    public void disconnectAll(){
+        Incomming.forEach((key, value) -> value.closeSocket());
+        Outgoing.forEach((key,value) -> value.closeSocket());
     }
 
     public ArrayList<String> getAllConnections(){
