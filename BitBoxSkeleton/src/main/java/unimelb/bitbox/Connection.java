@@ -375,6 +375,7 @@ public class Connection implements Runnable {
             if(mode.equals("tcp"))
                 TCPmain.removeConnection(peerInfo.toString());
             else
+                sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 UDPmain.removeConnection(peerInfo.toString());
             if(in != null)
                 in.close();

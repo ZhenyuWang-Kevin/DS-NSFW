@@ -195,6 +195,11 @@ public class UDPMain {
         }
     }
 
+    public void disconnectAll(){
+        Incomming.forEach((key, value) -> value.closeSocket());
+        Outgoing.forEach((key,value) -> value.closeSocket());
+    }
+
     public ArrayList<String> getAllConnections(){
         ArrayList<String> connections = new ArrayList<>();
 

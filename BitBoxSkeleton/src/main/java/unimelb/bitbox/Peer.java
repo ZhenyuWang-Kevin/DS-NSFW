@@ -68,6 +68,14 @@ public class Peer
     public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
     {
 
+        // shutdown event handler
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            public void run(){
+                log.info("Shutdown bitbox, disconnect all peers.");
+                s.clearAllConnection();
+            }
+        }, "Shutdown-thread"));
+
         //Information of this Peer
         advertisedName = Configuration.getConfigurationValue("advertisedName");
         PeerPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
