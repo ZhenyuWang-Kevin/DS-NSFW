@@ -115,20 +115,6 @@ public class Peer
     }
 
 
-    /*
-
-    private static void clientConnect(Socket client){
-
-        //List_Client.put(client,client);
-        counter++;
-        System.out.println("Client "+counter+": Applying for connection!");
-
-    }
-
-
-     */
-
-
     private static void serveClient(Socket client){
         try(Socket clientSocket = client){
 
@@ -227,58 +213,6 @@ public class Peer
 
 
 
-
-
-
-
-    private static String decryptMessage(String message){
-        // Decrypt result
-        try {
-            String key = "5v8y/B?D(G+KbPeS";
-            Key aesKey = new SecretKeySpec(key.getBytes(), "AES");
-            Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.DECRYPT_MODE, aesKey);
-            message = new String(cipher.doFinal(Base64.getDecoder().decode(message.getBytes())));
-            System.err.println("Decrypted message: "+message);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        return message;
-    }
-
-    private static void sendEncrypted(String message, DataOutputStream output){
-        // Encrypt first
-        String key = "5v8y/B?D(G+KbPeS";
-        Key aesKey = new SecretKeySpec(key.getBytes(), "AES");
-        try {
-            Cipher cipher = Cipher.getInstance("AES");
-            // Perform encryption
-            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-            byte[] encrypted = cipher.doFinal(message.getBytes("UTF-8"));
-            System.err.println("Encrypted text: "+new String(encrypted));
-            output.writeUTF(Base64.getEncoder().encodeToString(encrypted));
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
-
-
-    private static Integer parseCommand(JSONObject command) {
-
-        int result = 0;
-
-        if(command.containsKey("command_name")){
-            System.out.println("IT HAS A COMMAND NAME");
-        }
-
-
-
-        // TODO Auto-generated method stub
-        return result;
-    }
 
 
 
