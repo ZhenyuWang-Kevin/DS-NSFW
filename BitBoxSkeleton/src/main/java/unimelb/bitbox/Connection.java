@@ -584,6 +584,11 @@ public class Connection implements Runnable {
         }
     }
 
+    public void updatePort(int port){
+        this.peerPort = port;
+        sendCommand(JsonUtils.HANDSHAKE_RESPONSE());
+    }
+
     public Connection(InetAddress addr, int port, Document d){
         connectionInit();
         mode = "udp";
@@ -591,12 +596,11 @@ public class Connection implements Runnable {
         try{
             UDPSocket = new DatagramSocket();
             this.address = addr;
-            this.peerInfo = new HostPort(addr.getHostAddress(), port);
+            peerInfo = new HostPort((Document) d.get("hostPort"));
 
             if(d.getString("command").equals("HANDSHAKE_REQUEST")){
 
-                // Remove duplicate code
-                //peerInfo = new HostPort((Document) d.get("hostPort"));
+                peerPort = port;
 
                 if(!UDPmain.maximumConnectionReached()){
                     // available for connection, send HANDSHAKE RESPONSE
