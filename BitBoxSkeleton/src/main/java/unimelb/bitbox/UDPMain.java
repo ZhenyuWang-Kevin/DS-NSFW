@@ -20,7 +20,9 @@ public class UDPMain {
     private DatagramSocket listenSocket;
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
-    
+
+
+
     // listening for incoming connections
     private Thread server = new Thread(){
         @Override
