@@ -146,13 +146,17 @@ public class UDPMain {
             }
         }
 
-        // start listening for incoming connection
-        serverActive = true;
-        server.start();
+        if(listenSocket != null) {
+            // start listening for incoming connection
+            serverActive = true;
+            server.start();
 
-        // start the thread for managing all connections
-        communicationActive = true;
-        communication.start();
+            // start the thread for managing all connections
+            communicationActive = true;
+            communication.start();
+        } else {
+            log.warning("Please change the port and restart the bitbox peer!");
+        }
     }
     
 
