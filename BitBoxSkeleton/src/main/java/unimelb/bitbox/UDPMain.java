@@ -142,9 +142,9 @@ public class UDPMain {
                 Connection c = new Connection(tmp, "UDP");
                 c.UDPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
-                //if(c.flagActive){
+                if(c.flagActive){
                     Outgoing.put(tmp.toString(), c);
-                //}
+                }
             }
         }
 
