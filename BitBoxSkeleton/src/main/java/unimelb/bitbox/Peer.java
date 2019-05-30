@@ -58,7 +58,13 @@ public class Peer
     // Identifies the user number con
     private static int counter = 0;
 
-	private static Logger log = Logger.getLogger(Peer.class.getName());
+
+
+    private static HashMap<String, Integer> List_Peers;
+
+
+
+    private static Logger log = Logger.getLogger(Peer.class.getName());
     public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
     {
 
@@ -83,6 +89,8 @@ public class Peer
             e.printStackTrace();
         }
 
+
+
         ServerSocketFactory factory = ServerSocketFactory.getDefault();
 
         try(ServerSocket server = factory.createServerSocket(PeerPort)){
@@ -93,13 +101,9 @@ public class Peer
 
                 Socket client = server.accept();
 
-                // Start a new thread for monitoring client
-                Thread t_m = new Thread(() -> clientConnect(client));
-                t_m.start();
-
                 // Start a new thread for a connection
-                Thread t_c = new Thread(() -> serveClient(client));
-                t_c.start();
+                Thread t = new Thread(() -> serveClient(client));
+                t.start();
             }
 
         } catch (IOException e) {
@@ -108,9 +112,10 @@ public class Peer
 
 
 
-
-
     }
+
+
+    /*
 
     private static void clientConnect(Socket client){
 
@@ -121,7 +126,7 @@ public class Peer
     }
 
 
-
+     */
 
 
     private static void serveClient(Socket client){
@@ -170,13 +175,15 @@ public class Peer
             switch (request) {
                 case "CONNECT_PEER_REQUEST":
 
-                    System.out.println("Connect peer request");
+                    System.out.println("=================Connect peer request===============");
                     s.connectTo(targetIP, targetPort);
                     connectStatus = true;
 
                     if(connectStatus){
                         output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP,targetPort,connectStatus));
                         output.flush();
+                        List_Peers.put(targetIP,targetPort);
+
                     }else{
                         output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP,targetPort,connectStatus));
                         output.flush();
@@ -184,17 +191,26 @@ public class Peer
                     break;
                 case "DISCONNECT_PEER_REQUEST":
 
-                    System.out.println("Disconnect peer request");
+                    System.out.println("=================Disconnect peer request===============");
                     s.disconnectTo(targetIP, targetPort);
                     disconnectStatus = true;
 
                     if(disconnectStatus){
                         output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP, targetPort, disconnectStatus));
                         output.flush();
+                        List_Peers.remove(targetIP,targetPort);
                     }else{
                         output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP, targetPort, disconnectStatus));
                         output.flush();
                     }
+
+
+                    break;
+                case "LIST_PEERS_REQUEST":
+
+                    System.out.println("=================List peers request================");
+                    output.writeUTF(JsonUtils.LIST_PEERS_RESPOND(List_Peers));
+                    output.flush();
 
                     break;
                 default:
@@ -263,6 +279,7 @@ public class Peer
         // TODO Auto-generated method stub
         return result;
     }
+
 
 
 
