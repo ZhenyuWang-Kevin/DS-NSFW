@@ -30,7 +30,7 @@ public class UDPMain {
             while(serverActive){
                 try{
 
-                    byte [] buf=new byte[1024];
+                    byte [] buf=new byte[Connection.blockSize];
                     DatagramPacket dp=new DatagramPacket(buf,buf.length);
                     listenSocket.receive(dp);
                     String ip=dp.getAddress().getHostAddress();

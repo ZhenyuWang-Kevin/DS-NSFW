@@ -62,7 +62,7 @@ public class TCPMain {
             log.info("Already connected with " + p.toString());
             return true;
         } else {
-            Connection c = new Connection(p, "TCP");
+            Connection c = new Connection(p, "tcp");
             c.TCPmainPatch(this);
             if(c.flagActive){
                 Outgoing.put(p.toString(), c);
@@ -124,7 +124,7 @@ public class TCPMain {
             // if connection does not exist
             if(!connectionExist(tmp)){
                 // try connect with the peer
-                Connection c = new Connection(tmp, "TCP");
+                Connection c = new Connection(tmp, "tcp");
                 c.TCPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){

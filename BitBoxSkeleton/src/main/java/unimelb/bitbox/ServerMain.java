@@ -23,9 +23,10 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		timer = 0;
 		ResponseHandler.fManager = fileSystemManager;
+		Connection.blockSize = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
 
 		mode = Configuration.getConfigurationValue("mode");
-		if(mode.equals("TCP")) {
+		if(mode.equals("tcp")) {
 			TCP = new TCPMain();
 		} else {
 			UDP = new UDPMain();
@@ -56,7 +57,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
-		if(mode.equals("TCP"))
+		if(mode.equals("tcp"))
 			TCP.addEvent(fileSystemEvent);
 		else{
 			UDP.addEvent(fileSystemEvent);
@@ -74,7 +75,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	 * 	 * if the peer connection failed, the return value is true
 	 */
 	public boolean connectTo(String ip, int port){
-		if(mode.equals("TCP")){
+		if(mode.equals("tcp")){
 			return TCP.peerConnectWith(ip, port);
 		} else {
 			return UDP.peerConnectWith(ip, port);
@@ -92,7 +93,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	 * 		* if there is ongoing file transfer activity, return false. The connection can be forced to shutdown by calling forceDisconnection() method
 	 */
 	public boolean disconnectTo(String ip, int port){
-		if(mode.equals("TCP")){
+		if(mode.equals("tcp")){
 			return TCP.peerDisconnectWith(ip, port);
 		} else {
 			return UDP.peerDisconnectWith(ip, port);
@@ -106,7 +107,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	 * @return always returns true
 	 */
 	public boolean forceDisconnect(String ip, int port){
-		if(mode.equals("TCP")){
+		if(mode.equals("tcp")){
 			return TCP.forceDisconnection(ip, port);
 		} else {
 			return UDP.forceDisconnection(ip, port);

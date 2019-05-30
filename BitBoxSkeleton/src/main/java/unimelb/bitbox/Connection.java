@@ -34,6 +34,7 @@ public class Connection implements Runnable {
     private DatagramSocket UDPSocket;
     private String mode;
     private InetAddress address;
+    public static int blockSize;
 
     public boolean flagActive;
 
@@ -327,7 +328,7 @@ public class Connection implements Runnable {
         while (flagActive){
             synchronized (this) {
                 // receive command
-                if (mode.equals("TCP")) {
+                if (mode.equals("tcp")) {
                     try {
 
                         String data = in.readLine();
@@ -347,7 +348,7 @@ public class Connection implements Runnable {
                     }
                 } else {
                     try{
-                        byte[] buffer = new byte[1000];
+                        byte[] buffer = new byte[blockSize];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
                         String data = new String(buf.getData(),0,buf.getLength());
@@ -371,7 +372,7 @@ public class Connection implements Runnable {
         try{
             flagActive = false;
             log.info("Disconnect with " + peerInfo.toString());
-            if(mode.equals("TCP"))
+            if(mode.equals("tcp"))
                 TCPmain.removeConnection(peerInfo.toString());
             else
                 UDPmain.removeConnection(peerInfo.toString());
@@ -401,7 +402,7 @@ public class Connection implements Runnable {
     public void sendCommand(String base64Str) {
             try {
                // log.info("sending command " + base64Str);
-                if(mode.equals("TCP")) {
+                if(mode.equals("tcp")) {
                     out.write(base64Str);
                     out.newLine();
                     out.flush();
@@ -438,7 +439,7 @@ public class Connection implements Runnable {
             }
             HostPort peer = new HostPort(peers.remove(0));
 
-            if (mode.equals("TCP")) {
+            if (mode.equals("tcp")) {
                 if (!TCPmain.connectionExist(peer)) {
 
                     try {
@@ -478,7 +479,7 @@ public class Connection implements Runnable {
                         sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                         // send Handshake request to other peers
                         UDPSocket.setSoTimeout(3 * 1000);
-                        byte[] buffer = new byte[1000];
+                        byte[] buffer = new byte[blockSize];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
                         String data = new String(buf.getData());
@@ -514,7 +515,7 @@ public class Connection implements Runnable {
         connectionInit();
         this.peerInfo = peer;
         try{
-            if(mode.equals("TCP")) {
+            if(mode.equals("tcp")) {
                 TCPSocket = new Socket();
                 TCPSocket.connect(new InetSocketAddress(peer.host, peer.port), 5000);
                 in = new BufferedReader(new InputStreamReader(TCPSocket.getInputStream(), StandardCharsets.UTF_8));
@@ -549,7 +550,7 @@ public class Connection implements Runnable {
                 address = InetAddress.getByName(peerInfo.host);
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 UDPSocket.setSoTimeout(3 * 1000);
-                byte[] buffer = new byte[10000];
+                byte[] buffer = new byte[blockSize];
                 DatagramPacket command = new DatagramPacket(buffer, buffer.length);
                 UDPSocket.receive(command);
                 Document d = Document.parse(new String(command.getData(),0,command.getLength()));
@@ -585,7 +586,7 @@ public class Connection implements Runnable {
 
     public Connection(InetAddress addr, int port, Document d){
         connectionInit();
-        mode = "UDP";
+        mode = "udp";
 
         try{
             UDPSocket = new DatagramSocket();
@@ -624,7 +625,7 @@ public class Connection implements Runnable {
     // Incoming connection
     public Connection(Socket aSocket){
 
-        mode = "TCP";
+        mode = "tcp";
         connectionInit();
 
         try{
