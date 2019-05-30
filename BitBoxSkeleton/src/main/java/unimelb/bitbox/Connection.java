@@ -138,10 +138,10 @@ public class Connection implements Runnable {
     }
 
     public void TCPmainPatch(TCPMain m){
-        this.TCPmain = m;
+        TCPmain = m;
     }
     public void UDPmainPatch(UDPMain m){
-        this.UDPmain = m;
+        UDPmain = m;
     }
 
     // Main work goes here
@@ -388,6 +388,16 @@ public class Connection implements Runnable {
         }
     }
 
+    public boolean disconnect(){
+        if(threadManager.size() > 0){
+            log.warning("File transfer in action, try disconnect later");
+            return false;
+        } else {
+            closeSocket();
+            return true;
+        }
+    }
+
     public void sendCommand(String base64Str) {
             try {
                // log.info("sending command " + base64Str);
@@ -410,17 +420,6 @@ public class Connection implements Runnable {
             }
     }
 
-    public Document recieveUDPCommand() {
-        try {
-            byte[] buffer = new byte[10000];
-            DatagramPacket command = new DatagramPacket(buffer, buffer.length);
-            UDPSocket.receive(command);
-            return (Document)JsonUtils.decodeBase64toDocument(new String(command.getData()));
-        }catch(Exception e){
-            log.warning(e.getMessage());
-        }
-        return JsonUtils.decodeBase64toDocument(JsonUtils.INVALID_PROTOCOL("Error when recieve from UDP connection"));
-    }
 
     public HostPort getPeerInfo(){
         return peerInfo;

@@ -70,6 +70,52 @@ public class UDPMain {
         }
     };
 
+    public boolean peerConnectWith(String ip, int port){
+        HostPort p = new HostPort(ip, port);
+        if(connectionExist(p)){
+            log.info("Already connected with " + p.toString());
+            return true;
+        } else {
+            Connection c = new Connection(p, "UDP");
+            c.UDPmainPatch(this);
+            if(c.flagActive){
+                Outgoing.put(p.toString(), c);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public boolean peerDisconnectWith(String ip, int port){
+        HostPort p = new HostPort(ip,port);
+        if (!connectionExist(p)){
+            log.info("Connection with " + p.toString() + " does not exist.");
+            return true;
+        } else {
+            if (Incomming.containsKey(p.toString())){
+                return Incomming.get(p.toString()).disconnect();
+            } else {
+                return Outgoing.get(p.toString()).disconnect();
+            }
+        }
+    }
+
+    public boolean forceDisconnection(String ip, int port){
+        HostPort p = new HostPort(ip, port);
+        if(!connectionExist(p)){
+            log.info("Connection with " + p.toString() + " does not exist.");
+            return true;
+        } else{
+            if (Incomming.containsKey(p.toString())){
+                Incomming.get(p.toString()).closeSocket();
+            } else {
+                Outgoing.get(p.toString()).closeSocket();
+            }
+            return true;
+        }
+    }
+
     public UDPMain(){
         // initalize the event buffer
         eventBuffer = new LinkedList<>();
