@@ -7,111 +7,108 @@ import java.io.IOException;
 import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Configuration;
+import java.security.NoSuchAlgorithmException;
 
 import java.security.Key;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 
-//import org.apache.commons.codec.binary.Base64;
 import java.util.Base64;
 /*
  * Class for using AES128 to encrypt and decrypt
  */
 public class AES {
 
-    private static Logger log = Logger.getLogger(AES.class.getName());
+    private static Logger log = Logger.getLogger(Key.class.getName());
 
 
     public static void main(String[] args) throws Exception {
 
-        String cKey = "1234567890123456";
 
-        String cSrc = "testAES";
-        System.out.println(cSrc);
+        // secret key in Hex string
+        String sKey = AES.generateSecreteKey(128);
+        System.out.println("secrete key: " + sKey);
 
-        String enString = AES.Encrypt(cSrc, cKey);
-        System.out.println("encerypted string: " + enString);
+        byte[] encryptedMsg = AES.Encrypt("test encrypting AES", sKey);
+        System.out.println("encrypted secret key: " + encryptedMsg);
 
-
-        String DeString = AES.Decrypt(enString, cKey);
-        System.out.println("decrypted string: " + DeString);
-
-        System.out.println(AES.class.getResourceAsStream("/client3.pem"));
-
-        String priKey = getKeyContent("/client3.pem");
-        System.out.println("private key: \n" + priKey);
-        String pubKey = getKeyContent("/client3.pem.pub");
-        System.out.println("public key: \n" + pubKey);
+        String decryptedMsg = AES.Decrypt(encryptedMsg, sKey);
+        System.out.println("decrypted secret key: " + decryptedMsg);
 
     }
 
-    public static String getKeyContent(String filename) throws IOException {
 
-        InputStream is = AES.class.getResourceAsStream(filename);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        String line;
-        String lines = "";
-        while ((line = reader.readLine()) != null) {
-            lines = lines + line;
-            lines += "\n";
+    /*
+     * generate secrete key for communicating with clients
+     * @param length of the key generated
+     * @return generated key
+     */
+    public static String generateSecreteKey(int length){
+        SecretKey skey=null;
 
+        try {
+            KeyGenerator kgen = null;
+            kgen = KeyGenerator.getInstance("AES");
+            // secrete key length
+            kgen.init(length);
+            // generate the secrete key using AES
+            skey = kgen.generateKey();
+
+        }catch (NoSuchAlgorithmException e){
+            e.printStackTrace();
+            log.warning("No such Algorithm");
         }
 
-        return lines;
+        //        return skey.getEncoded();
+        return parseByte2HexStr(skey.getEncoded());
     }
 
-    /*
-     * read and transform local private key file into readable format
-     */
-    public static String getPrivateKey(String filename)throws IOException{
-//        String priKey = null;
-
-//        byte[] keyBytes = Files.readAllBytes(Paths.get(filename));
-//        priKey = Base64.getEncoder().encodeToString(keyBytes);
-//        System.out.println("keyBytes"+priKey);
-
-        File f = new File(filename);
-        FileInputStream fis = new FileInputStream(f);
-        DataInputStream dis = new DataInputStream(fis);
-        byte[] keyBytes = new byte[(int) f.length()];
-        dis.readFully(keyBytes);
-        dis.close();
-
-        String temp = new String(keyBytes);
-        System.out.println("Private key\n"+temp);
-//        String privKeyPEM = temp.replace("-----BEGIN RSA PRIVATE KEY-----\n", "");
-//        privKeyPEM = privKeyPEM.replace("-----END RSA PRIVATE KEY-----", "");
-        //System.out.println("Private key\n"+privKeyPEM);
-
-//        Base64 b64 = new Base64();
-//        byte [] decoded = b64.decode(privKeyPEM);
-//
-//        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
-//        KeyFactory kf = KeyFactory.getInstance(algorithm);
-//        return kf.generatePrivate(spec);
-        return temp;
+    // HELPER method for converting bytes into Hex string https://blog.csdn.net/qy20115549/article/details/83105736
+    private static String parseByte2HexStr(byte buf[]) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < buf.length; i++) {
+            String hex = Integer.toHexString(buf[i] & 0xFF);
+            if (hex.length() == 1) {
+                hex = '0' + hex;
+            }
+            sb.append(hex.toUpperCase());
+        }
+        return sb.toString();
     }
 
+    // HELPER method for converting hex string into bytes string https://blog.csdn.net/qy20115549/article/details/83105736
+    private static byte[] parseHexStr2Byte(String hexStr) {
+        if (hexStr.length() < 1)
+            return null;
+        byte[] result = new byte[hexStr.length()/2];
+        for (int i = 0;i< hexStr.length()/2; i++) {
+            int high = Integer.parseInt(hexStr.substring(i*2, i*2+1), 16);
+            int low = Integer.parseInt(hexStr.substring(i*2+1, i*2+2), 16);
+            result[i] = (byte) (high * 16 + low);
+        }
+        return result;
+    }
+
+
+
     /*
-     * static method to encrypt a given messgage using a given key
+     * static method to encrypt a given message using a given key
      * @param message for encrypting
      * @param key used to encrypt the message
      *
      * @return return the encrypted string
      */
-    public static String Encrypt(String sMsg, String sKey) throws Exception {
-
+    public static byte[] Encrypt(String sMsg, String sKey){
 
         byte[] encrypted = null;
+
+        byte[] skey = parseHexStr2Byte(sKey);
         // Encrypt first
-        Key aesKey = new SecretKeySpec(sKey.getBytes(), "AES");
+        Key aesKey = new SecretKeySpec(skey, "AES");
         try {
             // TODO: add padding/ or not??
-//            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            Cipher cipher = Cipher.getInstance("AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+//            Cipher cipher = Cipher.getInstance("AES");
             // Perform encryption
             cipher.init(Cipher.ENCRYPT_MODE, aesKey);
             encrypted = cipher.doFinal(sMsg.getBytes("UTF-8"));
@@ -121,18 +118,28 @@ public class AES {
             e.printStackTrace();
         }
         // encoding using base64
-        return Base64.getEncoder().encodeToString(encrypted);
-
+//        return Base64.getEncoder().encodeToString(encrypted);
+        return encrypted;
     }
 
-    public static String Decrypt(String sMsg, String sKey) throws Exception {
-        String message = null;
+    /*
+     * static method to decrypt a given message using a given key
+     * @param message for decrypting
+     * @param key used to decrypt the message
+     *
+     * @return return the decrypted bytes
+     */
+    public static String Decrypt(byte[] sMsg, String sKey){
+        byte[] message = null;
+        String decryptedMsg=null;
+        byte[] key = parseHexStr2Byte(sKey);
         // Decrypt result
         try {
-            Key aesKey = new SecretKeySpec(sKey.getBytes(), "AES");
-            Cipher cipher = Cipher.getInstance("AES");
+            Key aesKey = new SecretKeySpec(key, "AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, aesKey);
-            message = new String(cipher.doFinal(Base64.getDecoder().decode(sMsg.getBytes())));
+            message = cipher.doFinal(sMsg);
+            decryptedMsg = new String(message, "UTF-8");
 
 
         } catch (Exception e) {
@@ -140,7 +147,7 @@ public class AES {
             e.printStackTrace();
         }
 
-        return message;
+        return decryptedMsg;
 
     }
 
