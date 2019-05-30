@@ -397,12 +397,20 @@ public class JsonUtils {
 
     /**
      * LIST PEERS REQUEST, SEND BY CLIENT
-     * @param encrCmd
+
+     */
+    public static String LIST_PEERS_REQUEST(){
+        Document d = new Document();
+        d.append("command", "LIST_PEERS_REQUEST");
+        return d.toJson();
+    }
+
+    /**
+     * LIST PEERS RESPOND, SEND BY SERVER PEER
+     * @param List_Peers
      * @return
      */
-
-
-    public static String LIST_PEERS_REQUEST(HashMap<String, Integer> List_Peers){
+    public static String LIST_PEERS_RESPOND(HashMap<String, Integer> List_Peers){
         Document d = new Document();
 
         Iterator iter = List_Peers.entrySet().iterator();
