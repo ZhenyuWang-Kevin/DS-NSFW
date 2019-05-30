@@ -64,17 +64,10 @@ public class Peer
         PeerPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
 
 
-        /*
-        public peer(String PeerIP, int PeerHost){
-            this.PeerIP = PeerIP;
-            this.PeerHost = PeerHost;
-        }
-
-         */
-
         ServerSocketFactory factory = ServerSocketFactory.getDefault();
+
+
         try(ServerSocket server = factory.createServerSocket(PeerPort)){
-            System.out.println("Waiting for client connection..");
 
             // Wait for connections.
             while(true){
@@ -93,25 +86,11 @@ public class Peer
 
 
 
-        /*
-         reference from connection
-        // Main work goes here
-    public void receiveCommand(Document json){
-        Document fdesc;
-        log.info("received command: " + json.getString("command"));
-        switch(json.getString("command")){
-            case "HANDSHAKE_RESPONSE":
-
-        */
-
         //java -cp bitbox.jar unimelb.bitbox.Peer
         System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
-
-
-        //new ServerMain();
 
         
     }
@@ -129,30 +108,66 @@ public class Peer
             // Output Stream
             DataOutputStream output = new DataOutputStream(clientSocket.
                     getOutputStream());
-            System.out.println("CLIENT: "+input.readUTF());
-            output.writeUTF("Server: Hi Client "+counter+" !!!");
-
-            // Receive more data..
-            while(true){
-                if(input.available() > 0){
-                    // Attempt to convert read data to JSON
-                    String message = input.readUTF();
 
 
-                    //message = decryptMessage(message);
+            //read Auth requet from client
+            String message = input.readUTF();
+            JSONObject command = (JSONObject) parser.parse(message);
+            String identifyName = (String) command.get("identity");
 
-                    JSONObject command = (JSONObject) parser.parse(message);
-                    System.out.println("COMMAND RECEIVED: "+command.toJSONString());
-                    Integer result = parseCommand(command);
-                    JSONObject results = new JSONObject();
-                    results.put("result", result);
-                    output.writeUTF(results.toJSONString());
+
+            //测试使用，记得更改！！
+            String encrKey = "TEST";
+            boolean status = true;
+            // Automatically send Auth request first
+            output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,identifyName, status));
+            output.flush();
+
+
+            if (input.available() > 0){
+
+                // Attempt to convert read data to JSON
+                message = input.readUTF();
+
+
+                //message = decryptMessage(message);
+
+                command = (JSONObject) parser.parse(message);
+
+                String request = (String) command.get("command");
+
+
+                switch (request) {
+                    case "CONNECT_PEER_REQUEST":
+                        //在这里加上对密码的判断
+                        try {
+                            new ServerMain();
+                        } catch (NoSuchAlgorithmException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case "DISCONNECT_PEER_REQUEST":
+
+                        break;
+                    default:
+                        System.out.println("Unknown command from client");
+                        break;
                 }
+
             }
+
         } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
     }
+
+
+
+
+
+
+
+
 
     private static String decryptMessage(String message){
         // Decrypt result
@@ -196,6 +211,7 @@ public class Peer
             System.out.println("IT HAS A COMMAND NAME");
         }
 
+        /*
         if(command.get("command_name").equals("Math")){
             //Math math = new Math();
             Integer firstInt = Integer.parseInt(command.get("first_integer").toString());
@@ -221,6 +237,9 @@ public class Peer
                     }
             }
         }
+
+        */
+
         // TODO Auto-generated method stub
         return result;
     }
