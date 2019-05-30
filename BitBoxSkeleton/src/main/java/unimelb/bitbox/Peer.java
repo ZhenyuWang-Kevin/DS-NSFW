@@ -159,7 +159,7 @@ public class Peer
 
             // Attempt to convert read data to JSON
             message = input.readUTF();
-            System.out.println(message);
+
 
             //message = decryptMessage(message);
 
@@ -209,8 +209,13 @@ public class Peer
                 case "LIST_PEERS_REQUEST":
 
                     System.out.println("=================List peers request================");
-                    output.writeUTF(JsonUtils.LIST_PEERS_RESPOND(List_Peers));
-                    output.flush();
+
+                    if(List_Peers.isEmpty()){
+                        System.out.printf("Current no peers connection");
+                    }else{
+                        output.writeUTF(JsonUtils.LIST_PEERS_RESPOND(List_Peers));
+                        output.flush();
+                    }
 
                     break;
                 default:
