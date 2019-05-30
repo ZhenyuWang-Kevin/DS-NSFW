@@ -249,6 +249,9 @@ public class ResponseHandler {
 
 				try {
 					ByteBuffer buf = fManager.readFile(f.md5, d.getLong("position"), d.getLong("length"));
+					if(buf == null){
+						log.warning("null buffer");
+					}
 					String content = base64encodedString(buf);
 
 					//check if file exist

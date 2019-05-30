@@ -35,6 +35,7 @@ public class JsonUtils {
     // empty constructor for static class
     public JsonUtils(){}
 
+    // the name is wrong, the function is useless, but do not touch, it works just fine... XD
     private static String base64encodedCommand(String command){
         return command;
     }
@@ -44,6 +45,8 @@ public class JsonUtils {
      * @param base64Str
      * @return a json Document
      */
+
+    // the name is wrong, the function is useless, but do not touch, it works just fine... XD
     public static Document decodeBase64toDocument(String base64Str){
         return Document.parse(base64Str);
     }

@@ -373,11 +373,7 @@ public class Connection implements Runnable {
         try{
             flagActive = false;
             log.info("Disconnect with " + peerInfo.toString());
-            if(mode.equals("tcp"))
-                TCPmain.removeConnection(peerInfo.toString());
-            else
-                sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-                UDPmain.removeConnection(peerInfo.toString());
+            sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
             if(in != null)
                 in.close();
             if(out != null)
@@ -396,6 +392,10 @@ public class Connection implements Runnable {
             log.warning("File transfer in action, try disconnect later");
             return false;
         } else {
+            if(mode.equals("tcp"))
+                TCPmain.removeConnection(peerInfo.toString());
+            else
+                UDPmain.removeConnection(peerInfo.toString());
             closeSocket();
             return true;
         }

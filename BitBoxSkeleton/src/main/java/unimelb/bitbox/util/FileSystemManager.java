@@ -457,6 +457,7 @@ public class FileSystemManager extends Thread {
 						raf.close();
 					} catch (IOException e) {
 						// try another one
+						log.warning(e.getMessage());
 					}
 				}
 			}
