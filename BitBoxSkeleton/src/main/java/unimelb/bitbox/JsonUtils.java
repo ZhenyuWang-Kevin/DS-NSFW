@@ -332,6 +332,7 @@ public class JsonUtils {
         return d.toJson();
     }
 
+
     //++++++++++++ add new here: for the challenge response ++++++++//
 
     /**
@@ -353,7 +354,7 @@ public class JsonUtils {
      * @param status
      * @return
      */
-    public static String AUTH_RESPONSE_TRUE(String encrKey,String idt, boolean status){
+    public static String AUTH_RESPONSE_SUCCESS(String encrKey,String idt, boolean status){
         Document d = new Document();
         d.append("AES128", "AUTH_RESPONSE");
         d.append("identity", idt);
@@ -369,7 +370,7 @@ public class JsonUtils {
      * @param status
      * @return
      */
-    public static String AUTH_RESPONSE_FALSE(String encrKey,boolean status){
+    public static String AUTH_RESPONSE_FAIL(String encrKey,boolean status){
         Document d = new Document();
         d.append("AES128", "AUTH_RESPONSE");
         d.append("Status",status);
