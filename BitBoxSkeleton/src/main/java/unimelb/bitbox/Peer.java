@@ -85,14 +85,14 @@ public class Peer
         }
 
 
-
+        /*
         //java -cp bitbox.jar unimelb.bitbox.Peer
         System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
 
-        
+        */
     }
 
 
@@ -116,52 +116,78 @@ public class Peer
             String identifyName = (String) command.get("identity");
 
 
-            //测试使用，记得更改！！
+            //测试使用，记得更改！！在此处加上密码的算法
             String encrKey = "TEST";
             boolean status = true;
             // Automatically send Auth request first
             output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,identifyName, status));
             output.flush();
+            System.out.println("Auth public key success!");
 
 
-            if (input.available() > 0){
+            // Attempt to convert read data to JSON
+            message = input.readUTF();
+            System.out.println(message);
 
-                // Attempt to convert read data to JSON
-                message = input.readUTF();
+            //message = decryptMessage(message);
 
-
-                //message = decryptMessage(message);
-
-                command = (JSONObject) parser.parse(message);
-
-                String request = (String) command.get("command");
+            // Receive connection request from the client
 
 
-                switch (request) {
-                    case "CONNECT_PEER_REQUEST":
-                        //在这里加上对密码的判断
-                        try {
-                            new ServerMain();
-                        } catch (NoSuchAlgorithmException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case "DISCONNECT_PEER_REQUEST":
+            command = (JSONObject) parser.parse(message);
+            String request = (String) command.get("command");
+            String targetIP = (String) command.get("host");
+            Integer targetPort = Integer.parseInt(command.get("port").toString());
+            boolean connectStatus = false;
+            boolean disconnectStatus = false;
 
-                        break;
-                    default:
-                        System.out.println("Unknown command from client");
-                        break;
-                }
 
+            switch (request) {
+                case "CONNECT_PEER_REQUEST":
+
+                    System.out.println("Connect peer request");
+                    try {
+                        //需要先调整Server main的方法
+                        new ServerMain();
+                        connectStatus = true;
+                        output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP,targetPort,connectStatus));
+                        output.flush();
+                    } catch (NoSuchAlgorithmException e) {
+                        connectStatus = false;
+                        output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP,targetPort,connectStatus));
+                        output.flush();
+                        e.printStackTrace();
+                    }
+                    break;
+                case "DISCONNECT_PEER_REQUEST":
+
+                    System.out.println("Disconnect peer request");
+                    try {
+
+                        new ServerMain();
+                        disconnectStatus = true;
+                        output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP, targetPort, disconnectStatus));
+                        output.flush();
+                    }catch (NoSuchAlgorithmException e) {
+                        disconnectStatus = false;
+                        output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP, targetPort, disconnectStatus));
+                        output.flush();
+
+                        e.printStackTrace();
+                    }
+
+                    break;
+                default:
+                    System.out.println("Unknown command from client");
+                    break;
             }
+
+
 
         } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
     }
-
-
 
 
 
@@ -203,6 +229,7 @@ public class Peer
         }
     }
 
+
     private static Integer parseCommand(JSONObject command) {
 
         int result = 0;
@@ -211,34 +238,7 @@ public class Peer
             System.out.println("IT HAS A COMMAND NAME");
         }
 
-        /*
-        if(command.get("command_name").equals("Math")){
-            //Math math = new Math();
-            Integer firstInt = Integer.parseInt(command.get("first_integer").toString());
-            Integer secondInt = Integer.parseInt(command.get("second_integer").toString());
 
-            switch((String) command.get("method_name")){
-                case "add":
-                    result = firstInt + secondInt;
-                    break;
-                case "multiply":
-                    result = firstInt * secondInt;
-                    break;
-                case "subtract":
-                    result = firstInt - secondInt;
-                    break;
-                default:
-                    // Really bad design!!
-                    try {
-                        throw new Exception();
-                    } catch (Exception e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-            }
-        }
-
-        */
 
         // TODO Auto-generated method stub
         return result;

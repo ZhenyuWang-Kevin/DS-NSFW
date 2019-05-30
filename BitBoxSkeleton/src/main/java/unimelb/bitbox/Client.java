@@ -114,7 +114,7 @@ public class Client
             authStatus = (boolean) command.get("Status");
 
             System.out.println(message);
-            System.out.println(authStatus);
+
 
 
             if (authStatus) {
@@ -131,6 +131,7 @@ public class Client
                         output.flush();
                         break;
                     case "disconnect_peer":
+                        System.out.println("Send disconnection request");
                         output.writeUTF(JsonUtils.DISCONNECT_PEER_REQUEST(targetIP, targetPort));
                         output.flush();
                         break;
@@ -142,15 +143,9 @@ public class Client
 
             }
 
-
-
-            if (input.available() > 0) {
-
-            // Read connect respond from server..
+            // Receive connect respond from server..
             message = input.readUTF();
             System.out.println(message);
-
-            }
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
