@@ -1,9 +1,6 @@
 package unimelb.bitbox;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 
 import javax.crypto.Cipher;
 import java.security.*;
@@ -44,31 +41,35 @@ public class ClientKeys {
 
     public static void main(String[] args) throws Exception {
 
-        System.out.println(ClientKeys.class.getResourceAsStream("/client3.pem"));
+        // Read local private key file and get key strings
+//        String priKey = ClientKeys.getKeyContent("/client3.pem");
+        String priKey = ClientKeys.getKeyContent("bitboxclient_rsa");
 
-        String priKey = ClientKeys.getKeyContent("/client3.pem");
-        System.out.println("private key: \n" + priKey);
-        String pubKey = ClientKeys.getKeyContent("/client3.pem.pub");
-        System.out.println("public key: \n" + pubKey);
+        System.out.println("private key origin str: \n" + priKey);
 
-        PublicKey publicKey = PublicRSAConverter.decodePublicKey(pubKey);
-        String identity = PublicRSAConverter.identity;
+        // Read local public key file and get key strings
+//        String pubKey = ClientKeys.getKeyContent("/client3.pem.pub");
+        String pubKey = ClientKeys.getKeyContent("bitboxclient_rsa.pub");
+        System.out.println("public key origin str:: \n" + pubKey);
+
+        // convert public key string into compatible key format and get the identity
+        PublicKey publicKey = RSAConverter.decodePublicKey(pubKey);
+        String identity = RSAConverter.identity;
         System.out.println("identity is :"+identity);
 
-        String newPri;
-        newPri = priKey.replaceAll("\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                .replace("-----END RSA PRIVATE KEY-----", "");
-        System.out.println("new Private key\n"+newPri);
-
-        PrivateKey key = convertPriKey(newPri);
-        System.out.println("new Private key\n"+key);
+        // convert private key into compatible key format
+        PrivateKey privateKey = RSAConverter.convertPriKey(priKey);
 
         System.out.println("\nTesting RSA :\n");
-        String encrypted = PriEncrypt("i am message for testing encryption", key);
+        String encrypted = PubEncrypt("i am message for testing encryption", publicKey);
         System.out.println("Encrypted message : "+encrypted);
 
-        String decrypted = PubDecrypt(encrypted, publicKey);
+        String decrypted = PriDecrypt(encrypted, privateKey);
         System.out.println("Decrypted message : "+decrypted);
+
+
+//        System.out.println("\nTetsing generating keys: \n");
+//        genKeyPair();
 
     }
 
@@ -97,8 +98,8 @@ public class ClientKeys {
      * @return pub/pri key
      */
     private static String getKeyContent(String filename) throws IOException {
-
-        InputStream is = ClientKeys.class.getResourceAsStream(filename);
+        InputStream is = new FileInputStream(filename);
+//        InputStream is = ClientKeys.class.getResourceAsStream(filename);
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         String line;
         String lines = "";
@@ -113,45 +114,11 @@ public class ClientKeys {
         return lines;
     }
 
-    // http://magnus-k-karlsson.blogspot.com/2018/05/how-to-read-pem-pkcs1-or-pkcs8-encoded.html
-    public static PrivateKey convertPriKey(String key_str) throws Exception{
-//        String content = new String(
-//                Files.readAllBytes(Paths.get(ClassLoader.getSystemResource("server.key.pkcs1.pem").toURI())));
-//        content = content.replaceAll("\\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
-//                .replace("-----END RSA PRIVATE KEY-----", "");
-//        System.out.println("'" + content + "'");
-        byte[] bytes = Base64.getDecoder().decode(key_str);
-
-        DerInputStream derReader = new DerInputStream(bytes);
-        DerValue[] seq = derReader.getSequence(0);
-        // skip version seq[0];
-        BigInteger modulus = seq[1].getBigInteger();
-        BigInteger publicExp = seq[2].getBigInteger();
-        BigInteger privateExp = seq[3].getBigInteger();
-        BigInteger prime1 = seq[4].getBigInteger();
-        BigInteger prime2 = seq[5].getBigInteger();
-        BigInteger exp1 = seq[6].getBigInteger();
-        BigInteger exp2 = seq[7].getBigInteger();
-        BigInteger crtCoef = seq[8].getBigInteger();
-
-        RSAPrivateCrtKeySpec keySpec =
-                new RSAPrivateCrtKeySpec(modulus, publicExp, privateExp, prime1, prime2, exp1, exp2, crtCoef);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-        System.out.println(privateKey);
-
-        return privateKey;
-    }
-
 
     public static String PriEncrypt( String str, PrivateKey priKey) throws Exception{
-//        byte[] decoded = Base64.getDecoder().decode(priKey);
-//        RSAPrivateKey privateKey = (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
         // using RSA de encrypt
         Cipher cipher = Cipher.getInstance("RSA");
-//        cipher.init(Cipher.ENCRYPT_MODE, privateKey);
         cipher.init(Cipher.ENCRYPT_MODE, priKey);
-//        String outStr = Base64.encodeBase64String(cipher.doFinal(str.getBytes("UTF-8")));
         String outStr = Base64.getEncoder().encodeToString(cipher.doFinal(str.getBytes("UTF-8")));
 
         return outStr;
@@ -168,6 +135,12 @@ public class ClientKeys {
         return outStr;
     }
 
+    /*
+     * use public key to encrypt the string
+     * @param string that needs to be encrypted
+     * @param public key that is used to encrypt
+     * @return encrypted string
+     */
     public static String PubEncrypt( String str, PublicKey publicKey ) throws Exception{
 
 //        .decodeBase64(publicKey);
@@ -181,13 +154,16 @@ public class ClientKeys {
 
         return outStr;
     }
+
+    /*
+     * use private key to decrypt the string
+     * @param string that needs to be decrypted
+     * @param private key that is used to decrypt
+     * @return decrypted string
+     */
     public static String PriDecrypt(String str, PrivateKey privateKey) throws Exception{
         // decode the encrypted string
         byte[] inputByte = Base64.getDecoder().decode(str.getBytes("UTF-8"));
-        // decode the private key
-//        byte[] decoded = Base64.getDecoder().decode(privateKey);
-//        RSAPrivateKey priKey = (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
-        // use rsa to decode
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         String outStr = new String(cipher.doFinal(inputByte));
