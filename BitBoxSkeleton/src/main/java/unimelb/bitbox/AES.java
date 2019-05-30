@@ -1,5 +1,8 @@
 package unimelb.bitbox;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.io.IOException;
 import java.util.logging.Logger;
 
@@ -35,6 +38,61 @@ public class AES {
 
         String DeString = AES.Decrypt(enString, cKey);
         System.out.println("decrypted string: " + DeString);
+
+        System.out.println(AES.class.getResourceAsStream("/client3.pem"));
+
+        String priKey = getKeyContent("/client3.pem");
+        System.out.println("private key: \n" + priKey);
+        String pubKey = getKeyContent("/client3.pem.pub");
+        System.out.println("public key: \n" + pubKey);
+
+    }
+
+    public static String getKeyContent(String filename) throws IOException {
+
+        InputStream is = AES.class.getResourceAsStream(filename);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        String line;
+        String lines = "";
+        while ((line = reader.readLine()) != null) {
+            lines = lines + line;
+            lines += "\n";
+
+        }
+
+        return lines;
+    }
+
+    /*
+     * read and transform local private key file into readable format
+     */
+    public static String getPrivateKey(String filename)throws IOException{
+//        String priKey = null;
+
+//        byte[] keyBytes = Files.readAllBytes(Paths.get(filename));
+//        priKey = Base64.getEncoder().encodeToString(keyBytes);
+//        System.out.println("keyBytes"+priKey);
+
+        File f = new File(filename);
+        FileInputStream fis = new FileInputStream(f);
+        DataInputStream dis = new DataInputStream(fis);
+        byte[] keyBytes = new byte[(int) f.length()];
+        dis.readFully(keyBytes);
+        dis.close();
+
+        String temp = new String(keyBytes);
+        System.out.println("Private key\n"+temp);
+//        String privKeyPEM = temp.replace("-----BEGIN RSA PRIVATE KEY-----\n", "");
+//        privKeyPEM = privKeyPEM.replace("-----END RSA PRIVATE KEY-----", "");
+        //System.out.println("Private key\n"+privKeyPEM);
+
+//        Base64 b64 = new Base64();
+//        byte [] decoded = b64.decode(privKeyPEM);
+//
+//        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
+//        KeyFactory kf = KeyFactory.getInstance(algorithm);
+//        return kf.generatePrivate(spec);
+        return temp;
     }
 
     /*
@@ -46,21 +104,6 @@ public class AES {
      */
     public static String Encrypt(String sMsg, String sKey) throws Exception {
 
-        if (sKey == null) {
-            log.warning("key cannot be null!");
-            return null;
-        }
-
-        if (sKey.length() != 16) {
-            log.warning("length of key is not 16!");
-            return null;
-        }
-
-//        byte[] raw = sKey.getBytes("utf-8");
-//        SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-//
-//        // cipher method in "alogorithm/mode/padding"
-//        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
 
         byte[] encrypted = null;
         // Encrypt first
