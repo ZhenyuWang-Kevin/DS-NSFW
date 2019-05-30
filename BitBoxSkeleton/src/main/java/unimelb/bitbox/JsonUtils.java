@@ -4,6 +4,11 @@ import unimelb.bitbox.util.*;
 
 import java.util.Base64;
 
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Iterator;
+
 /**
  * A Json communication protocol static class.
  * All functions are static, that means it can be directly used as in JsonUtils.function()
@@ -333,10 +338,9 @@ public class JsonUtils {
     }
 
 
-    //++++++++++++ add new here: for the challenge response ++++++++//
 
     /**
-     * AUTH_REQUEST, CHALLENGE RESPOND FOR THE CLIENT
+     * AUTH_REQUEST, CHALLENGE RESPOND FOR THE CLIENT, SEND BY CLIENT
      * @param msg
      * @return base64 encoded json string
      */
@@ -349,7 +353,7 @@ public class JsonUtils {
     }
 
     /**
-     * AUTH_RESPONSE, CHALLENGE RESPOND FOR THE CLIENT
+     * AUTH_RESPONSE, CHALLENGE RESPOND FOR THE CLIENT, SEND BY PEER
      * @param encrKey is the BASE64 ENCRYPED SECRET KEY
      * @param status
      * @return
@@ -365,7 +369,7 @@ public class JsonUtils {
     }
 
     /**
-     * AUTH_RESPONSE_FALSE, CHALLENGE RESPOND FOR THE CLIENT
+     * AUTH_RESPONSE_FALSE, CHALLENGE RESPOND FOR THE CLIENT, SEND BY PEER
      * @param encrKey is the BASE64 ENCRYPED SECRET KEY
      * @param status
      * @return
@@ -391,15 +395,133 @@ public class JsonUtils {
     }
 
 
+    /**
+     * LIST PEERS REQUEST, SEND BY CLIENT
+     * @param encrCmd
+     * @return
+     */
 
-    public static String LIST_PEERS_REQUEST(String encrCmd){
+
+    public static String LIST_PEERS_REQUEST(HashMap<String, Integer> List_Peers){
         Document d = new Document();
-        d.append("payload", encrCmd);
+
+        Iterator iter = List_Peers.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            Object host = entry.getKey();
+            Object port = entry.getValue();
+            d.append("host", host.toString());
+            d.append("port",Integer.parseInt(port.toString()));
+
+        }
+        return d.toJson();
+    }
+
+
+    /**
+     * CONNECT TO PEER REQUEST, SEND BY CLIENT
+     * @param targetIP
+     * @param targetPort
+     * @return
+     */
+    public static String CONNECT_PEER_REQUEST(String targetIP,int targetPort){
+        Document d = new Document();
+        d.append("command", "CONNECT_PEER_REQUEST");
+        d.append("host", targetIP);
+        d.append("port",targetPort);
+
+        return d.toJson();
+
+    }
+
+    /**
+     * CONNECT TO PEER SUCCESS RESPONSE, SEND BY PEER
+     * @param targetIP
+     * @param targetPort
+     * @param status
+     * @return
+     */
+    public static String CONNECT_PEER_RESOPONSE_SUCCESS(String targetIP,int targetPort,boolean status){
+        Document d = new Document();
+        d.append("command", "CONNECT_PEER_RESPONSE");
+        d.append("host", targetIP);
+        d.append("port",targetPort);
+        d.append("status",status);
+        d.append("message","connected to peer");
+
+        return d.toJson();
+    }
+
+    /**
+     * CONNECT TO PEER FAIL RESPONSE, SEND BY PEER
+     * @param targetIP
+     * @param targetPort
+     * @param status
+     * @return
+     */
+    public static String CONNECT_PEER_RESOPONSE_FAIL(String targetIP,int targetPort,boolean status){
+        Document d = new Document();
+        d.append("command", "CONNECT_PEER_RESPONSE");
+        d.append("host", targetIP);
+        d.append("port",targetPort);
+        d.append("status",status);
+        d.append("message","connected failed");
 
         return d.toJson();
     }
 
 
+    /**
+     * DISCONNECT FROM PEER REQUEST, SEND BY CLIENT
+     * @param targetIP
+     * @param targetPort
+     * @return
+     */
+    public static String DISCONNECT_PEER_REQUEST(String targetIP,int targetPort){
+        Document d = new Document();
+        d.append("command", "DISCONNECT_PEER_REQUEST");
+        d.append("host", targetIP);
+        d.append("port",targetPort);
+
+        return d.toJson();
+    }
+
+    /**
+     * DISCONNECT FROM PEER SUCCESS RESPONSE, SEND BY PEER
+     * @param targetIP
+     * @param targetPort
+     * @param status
+     * @return
+     */
+    public static String DISCONNECT_PEER_RESOPONSE_SUCCESS(String targetIP,int targetPort,boolean status){
+        Document d = new Document();
+        d.append("command", "DISCONNECT_PEER_RESPONSE");
+        d.append("host", targetIP);
+        d.append("port",targetPort);
+        d.append("status",status);
+        d.append("message","diconnected from peer");
+
+        return d.toJson();
+    }
+
+
+    /**
+     * DISCONNECT FROM PEER FAIR RESPONSE, SEND BY PEER
+     * @param targetIP
+     * @param targetPort
+     * @param status
+     * @return
+     */
+    public static String DISCONNECT_PEER_RESOPONSE_FAIL(String targetIP,int targetPort,boolean status){
+        Document d = new Document();
+        d.append("command", "DISCONNECT_PEER_RESPONSE");
+        d.append("host", targetIP);
+        d.append("port",targetPort);
+        d.append("status",status);
+        d.append("message","connection not active");
+
+        return d.toJson();
+    }
 
 
 

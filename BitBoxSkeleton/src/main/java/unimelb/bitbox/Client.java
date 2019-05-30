@@ -45,8 +45,8 @@ public class Client
     private static int targetPort;
 
     private static String identityName;
-    //file system manager 里有关于hash的功能可以调用
-    private HashMap<String, Peer> List_Peers;
+
+    private static HashMap<String, Integer> List_Peers;
 
     //private Queue<FileSystemEvent> eventBuffer;
 
@@ -55,40 +55,6 @@ public class Client
     public static void main( String[] args ) {
 
 
-
-
-        for (int i = 0; i < args.length; i++){
-
-            //list_peers, connect_peer, disconnect_peer
-            if(args[i].equals("-c")){
-                operation = args[i+1];
-            }
-
-
-            // The host & port of the peer who is going to establish the connection
-            //e.g. server.com:3000
-            if(args[i].equals("-s")){
-                serverIP = args[i+1].substring(0,args[i+1].indexOf(':'));
-                serverPort = Integer.parseInt(args[i+1].substring(args[i+1].indexOf(':')+1,
-                                    args[i+1].length()));
-            }
-
-
-            // The target connection peer
-            //e.g. bigdata.cis.unimelb.edu.au:8500
-            if(args[i].equals("-p")){
-                targetIP = args[i+1].substring(0,args[i+1].indexOf(':'));
-                targetPort = Integer.parseInt(args[i+1].substring(args[i+1].indexOf(':')+1,
-                                    args[i+1].length()));
-            }
-
-
-            //e.g. aaron@krusty
-            if(args[i].equals("-i")){
-                identityName = args[i+1];
-            }
-
-        }
 
         /*
         System.setProperty("serverPort", serverPort);
@@ -100,17 +66,74 @@ public class Client
         log.info("BitBox Client starting...");
         //Configuration.getConfiguration();
 
-
         try(Socket socket = new Socket(serverIP, serverPort);){
+
+            for (int i = 0; i < args.length; i++){
+
+                //list_peers, connect_peer, disconnect_peer
+                if(args[i].equals("-c")){
+                    operation = args[i+1];
+                }
+
+
+                // The host & port of the peer who is going to establish the connection
+                //e.g. server.com:3000
+                if(args[i].equals("-s")){
+                    serverIP = args[i+1].substring(0,args[i+1].indexOf(':'));
+                    serverPort = Integer.parseInt(args[i+1].substring(args[i+1].indexOf(':')+1,
+                            args[i+1].length()));
+                }
+
+
+                // The target connection peer
+                //e.g. bigdata.cis.unimelb.edu.au:8500
+                if(args[i].equals("-p")){
+                    targetIP = args[i+1].substring(0,args[i+1].indexOf(':'));
+                    targetPort = Integer.parseInt(args[i+1].substring(args[i+1].indexOf(':')+1,
+                            args[i+1].length()));
+                }
+
+                // The clients idnetity name
+                //e.g. aaron@krusty
+                if(args[i].equals("-i")){
+                    identityName = args[i+1];
+                }
+
+            }
+
+
+
+
+
             // Output and Input Stream
             DataInputStream input = new DataInputStream(socket.
                     getInputStream());
             DataOutputStream output = new DataOutputStream(socket.
                     getOutputStream());
 
-            output.writeUTF("I want to connect!");
-            output.flush();
 
+            //list_peers, connect_peer, disconnect_peer
+            switch(operation){
+                case "list_peers":
+                    output.writeUTF(JsonUtils.AUTH_REQUEST(identityName));
+                    output.flush();
+                    break;
+                case "connect_peer":
+                    output.writeUTF(JsonUtils.CONNECT_PEER_REQUEST(targetIP,targetPort));
+                    output.flush();
+                    break;
+                case "disconnect_peer":
+                    output.writeUTF(JsonUtils.DISCONNECT_PEER_REQUEST(targetIP,targetPort));
+                    output.flush();
+                    break;
+                default:
+                    System.out.println("Unknown command");
+                    break;
+            }
+
+
+            //参考用，记得删除
+            /*
             JSONObject newCommand = new JSONObject();
             newCommand.put("command_name", "Math");
             newCommand.put("method_name","multiply");
@@ -119,15 +142,11 @@ public class Client
 
             System.out.println(newCommand.toJSONString());
 
-            // Read hello from server..
-            String message = input.readUTF();
-            System.out.println(message);
-
-            // Send RMI to Server
+                        // Send RMI to Server
 
             String jsonString = newCommand.toJSONString();
 
-            //sendEncrypted(jsonString,output);
+                        //sendEncrypted(jsonString,output);
             output.writeUTF(newCommand.toJSONString());
 
             output.flush();
@@ -136,15 +155,21 @@ public class Client
             String result = input.readUTF();
             System.out.println("Received from server: "+result);
 
+            */
+
+
+            // Read hello from server..
+            String message = input.readUTF();
+            System.out.println(message);
+
+
+
+
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
 
         }
-
-
-        new Peer();
-        //new ServerMain();
 
     }
 

@@ -61,10 +61,7 @@ public class Peer
         //Information of this Peer
 
         advertisedName = Configuration.getConfigurationValue("advertisedName");
-        System.out.println(advertisedName);
         PeerPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
-        System.out.println(PeerPort);
-
 
 
         /*
@@ -143,8 +140,6 @@ public class Peer
 
 
                     //message = decryptMessage(message);
-
-
 
                     JSONObject command = (JSONObject) parser.parse(message);
                     System.out.println("COMMAND RECEIVED: "+command.toJSONString());
