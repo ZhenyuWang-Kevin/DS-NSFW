@@ -50,6 +50,10 @@ public class Peer
     private static String advertisedName;
     private static int PeerPort;
 
+    private static HashMap<Integer, Integer> List_Client;
+
+    //private static ServerMain s;
+    private static ServerMain s;
 
     // Identifies the user number con
     private static int counter = 0;
@@ -59,25 +63,43 @@ public class Peer
     {
 
         //Information of this Peer
-
         advertisedName = Configuration.getConfigurationValue("advertisedName");
         PeerPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
 
 
-        ServerSocketFactory factory = ServerSocketFactory.getDefault();
 
+
+        //java -cp bitbox.jar unimelb.bitbox.Peer
+        System.setProperty("java.util.logging.SimpleFormatter.format",
+                "[%1$tc] %2$s %4$s: %5$s%n");
+        log.info("BitBox Peer starting...");
+        Configuration.getConfiguration();
+
+
+        try{
+            s = new ServerMain();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        ServerSocketFactory factory = ServerSocketFactory.getDefault();
 
         try(ServerSocket server = factory.createServerSocket(PeerPort)){
 
             // Wait for connections.
             while(true){
+
+
                 Socket client = server.accept();
-                counter++;
-                System.out.println("Client "+counter+": Applying for connection!");
+
+                // Start a new thread for monitoring client
+                Thread t_m = new Thread(() -> clientConnect(client));
+                t_m.start();
 
                 // Start a new thread for a connection
-                Thread t = new Thread(() -> serveClient(client));
-                t.start();
+                Thread t_c = new Thread(() -> serveClient(client));
+                t_c.start();
             }
 
         } catch (IOException e) {
@@ -85,15 +107,20 @@ public class Peer
         }
 
 
-        /*
-        //java -cp bitbox.jar unimelb.bitbox.Peer
-        System.setProperty("java.util.logging.SimpleFormatter.format",
-                "[%1$tc] %2$s %4$s: %5$s%n");
-        log.info("BitBox Peer starting...");
-        Configuration.getConfiguration();
 
-        */
+
+
     }
+
+    private static void clientConnect(Socket client){
+
+        //List_Client.put(client,client);
+        counter++;
+        System.out.println("Client "+counter+": Applying for connection!");
+
+    }
+
+
 
 
 
@@ -132,8 +159,6 @@ public class Peer
             //message = decryptMessage(message);
 
             // Receive connection request from the client
-
-
             command = (JSONObject) parser.parse(message);
             String request = (String) command.get("command");
             String targetIP = (String) command.get("host");
@@ -146,34 +171,29 @@ public class Peer
                 case "CONNECT_PEER_REQUEST":
 
                     System.out.println("Connect peer request");
-                    try {
-                        //需要先调整Server main的方法
-                        new ServerMain();
-                        connectStatus = true;
+                    s.connectTo(targetIP, targetPort);
+                    connectStatus = true;
+
+                    if(connectStatus){
                         output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP,targetPort,connectStatus));
                         output.flush();
-                    } catch (NoSuchAlgorithmException e) {
-                        connectStatus = false;
+                    }else{
                         output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP,targetPort,connectStatus));
                         output.flush();
-                        e.printStackTrace();
                     }
                     break;
                 case "DISCONNECT_PEER_REQUEST":
 
                     System.out.println("Disconnect peer request");
-                    try {
+                    s.disconnectTo(targetIP, targetPort);
+                    disconnectStatus = true;
 
-                        new ServerMain();
-                        disconnectStatus = true;
+                    if(disconnectStatus){
                         output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP, targetPort, disconnectStatus));
                         output.flush();
-                    }catch (NoSuchAlgorithmException e) {
-                        disconnectStatus = false;
+                    }else{
                         output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP, targetPort, disconnectStatus));
                         output.flush();
-
-                        e.printStackTrace();
                     }
 
                     break;

@@ -62,4 +62,54 @@ public class ServerMain implements FileSystemObserver, Runnable {
 			UDP.addEvent(fileSystemEvent);
 		}
 	}
+
+	/**
+	 * Connect with the peer
+	 * @param ip    ip address
+	 * @param port  port number
+	 * @return  boolean value indicate whether the connection is successful
+	 *
+	 * 	 * if the destination peer already connected, the return value is true
+	 * 	 * if the peer connection successful, the return value is true
+	 * 	 * if the peer connection failed, the return value is true
+	 */
+	public boolean connectTo(String ip, int port){
+		if(mode.equals("TCP")){
+			return TCP.peerConnectWith(ip, port);
+		} else {
+			return UDP.peerConnectWith(ip, port);
+		}
+	}
+
+	/**
+	 * Disconnect with a peer
+	 * @param ip ip address
+	 * @param port port number
+	 * @return boolean value indicate whether the disconnection is successful
+	 *
+	 * 		* if there is no connection exist with given ip and port, return true
+	 * 		* if successfully disconnected, return true
+	 * 		* if there is ongoing file transfer activity, return false. The connection can be forced to shutdown by calling forceDisconnection() method
+	 */
+	public boolean disconnectTo(String ip, int port){
+		if(mode.equals("TCP")){
+			return TCP.peerDisconnectWith(ip, port);
+		} else {
+			return UDP.peerDisconnectWith(ip, port);
+		}
+	}
+
+	/**
+	 * Force disconnect with a peer
+	 * @param ip
+	 * @param port
+	 * @return always returns true
+	 */
+	public boolean forceDisconnect(String ip, int port){
+		if(mode.equals("TCP")){
+			return TCP.forceDisconnection(ip, port);
+		} else {
+			return UDP.forceDisconnection(ip, port);
+		}
+	}
 }

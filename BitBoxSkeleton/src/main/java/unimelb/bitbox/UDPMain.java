@@ -20,7 +20,9 @@ public class UDPMain {
     private DatagramSocket listenSocket;
     private Queue<FileSystemEvent> eventBuffer;
     private boolean serverActive, communicationActive;
-    
+
+
+
     // listening for incoming connections
     private Thread server = new Thread(){
         @Override
@@ -37,18 +39,11 @@ public class UDPMain {
                     InetAddress aHost = InetAddress.getByName(ip);
                     HostPort key = new HostPort(ip, port);
                     Document d = JsonUtils.decodeBase64toDocument(data);
-                    if(Incomming.containsKey(key)){
-                        Incomming.get(key).receiveCommand(d);
-                    } else if(Outgoing.containsKey(key)) {
-                        Outgoing.get(key).receiveCommand(d);
-                    } else {
-
-                        Connection c = new Connection(aHost, port, d);
-
-
-                        if (c.flagActive) {
-                            Incomming.put(c.getPeerInfo().toString(), c);
-                        }
+                    Connection c = new Connection(aHost,port,d);
+                    
+                    
+                    if(c.flagActive){
+                        Incomming.put(c.getPeerInfo().toString(), c);
                     }
                 }catch(IOException e){
                     log.warning(e.getMessage());
@@ -77,15 +72,62 @@ public class UDPMain {
         }
     };
 
+    public boolean peerConnectWith(String ip, int port){
+        HostPort p = new HostPort(ip, port);
+        if(connectionExist(p)){
+            log.info("Already connected with " + p.toString());
+            return true;
+        } else {
+            Connection c = new Connection(p, "UDP");
+            c.UDPmainPatch(this);
+            if(c.flagActive){
+                Outgoing.put(p.toString(), c);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public boolean peerDisconnectWith(String ip, int port){
+        HostPort p = new HostPort(ip,port);
+        if (!connectionExist(p)){
+            log.info("Connection with " + p.toString() + " does not exist.");
+            return true;
+        } else {
+            if (Incomming.containsKey(p.toString())){
+                return Incomming.get(p.toString()).disconnect();
+            } else {
+                return Outgoing.get(p.toString()).disconnect();
+            }
+        }
+    }
+
+    public boolean forceDisconnection(String ip, int port){
+        HostPort p = new HostPort(ip, port);
+        if(!connectionExist(p)){
+            log.info("Connection with " + p.toString() + " does not exist.");
+            return true;
+        } else{
+            if (Incomming.containsKey(p.toString())){
+                Incomming.get(p.toString()).closeSocket();
+            } else {
+                Outgoing.get(p.toString()).closeSocket();
+            }
+            return true;
+        }
+    }
+
     public UDPMain(){
         // initalize the event buffer
         eventBuffer = new LinkedList<>();
         Incomming = new HashMap<>();
         Outgoing = new HashMap<>();
 
+        Connection.UDPmain = this;
         // initialize server socket
         try{
-            listenSocket = new DatagramSocket(JsonUtils.getSelfHostPort().port);
+            listenSocket = new DatagramSocket(Integer.parseInt(Configuration.getConfigurationValue("port")));
         }catch(IOException e){
             log.warning(e.getMessage());
         }
@@ -106,13 +148,17 @@ public class UDPMain {
             }
         }
 
-        // start listening for incoming connection
-        serverActive = true;
-        server.start();
+        if(listenSocket != null) {
+            // start listening for incoming connection
+            serverActive = true;
+            server.start();
 
-        // start the thread for managing all connections
-        communicationActive = true;
-        communication.start();
+            // start the thread for managing all connections
+            communicationActive = true;
+            communication.start();
+        } else {
+            log.warning("Please change the port and restart the bitbox peer!");
+        }
     }
     
 

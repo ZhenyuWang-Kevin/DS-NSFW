@@ -114,10 +114,10 @@ public class Client
             authStatus = (boolean) command.get("Status");
 
             System.out.println(message);
-
-
+            
 
             if (authStatus) {
+                System.out.println("===============Receive auth request=============");
                 System.out.println("Auth success, go to the operation");
                 //list_peers, connect_peer, disconnect_peer
                 switch (operation) {
@@ -154,33 +154,6 @@ public class Client
         }
 
     }
-
-
-
-
-    /*
-
-    // Handles the operation
-    private String translateEventToCommand(FileSystemEvent e){
-        switch(e.event){
-            case AUTH_REQUEST:
-                return JsonUtils.FILE_CREATE_REQUEST(e.fileDescriptor,e.pathName);
-            case AUTH_RESPONSE_SUCCESS:
-                return JsonUtils.FILE_DELETE_REQUEST(e.fileDescriptor,e.pathName);
-            case AUTH_RESPONSE_FAIL:
-                return JsonUtils.FILE_MODIFY_REQUEST(e.fileDescriptor,e.pathName);
-        }
-        // technically speaking, the event should never returns a null string
-        return null;
-    }
-
-
-
-
-
-    */
-
-
 
 
 }
