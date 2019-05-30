@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/BitBoxSkeleton.iml" filepath="$PROJECT_DIR$/.idea/BitBoxSkeleton.iml" />
+      <module fileurl="file://$PROJECT_DIR$/bitbox.iml" filepath="$PROJECT_DIR$/bitbox.iml" />
     </modules>
   </component>
 </project>

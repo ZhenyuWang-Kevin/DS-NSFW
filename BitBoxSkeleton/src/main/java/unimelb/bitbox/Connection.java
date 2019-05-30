@@ -594,8 +594,8 @@ public class Connection implements Runnable {
 
             if(d.getString("command").equals("HANDSHAKE_REQUEST")){
 
-                // TODO get peerInfo
-                peerInfo = new HostPort((Document) d.get("hostPort"));
+                // Remove duplicate code
+                //peerInfo = new HostPort((Document) d.get("hostPort"));
 
                 if(!UDPmain.maximumConnectionReached()){
                     // available for connection, send HANDSHAKE RESPONSE
