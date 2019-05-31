@@ -133,9 +133,23 @@ public class Peer
             JSONObject command = (JSONObject) parser.parse(message);
             String identifyName = (String) command.get("identity");
 
+            //加在这里！！！！！！ identifyName就是读取到的CLIENT的名字！！！！！！！
 
-            //测试使用，记得更改！！在此处加上密码的算法
+
+
+
+            //下面这个是我随便写的，要放上输出的密码
             String encrKey = "TEST";
+
+
+
+
+
+
+
+
+
+
             boolean status = true;
             // Automatically send Auth request first
             output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,identifyName, status));
@@ -213,6 +227,24 @@ public class Peer
 
 
 
+
+    /*
+     * read key files from local file
+     * @param key file name
+     * @return pub/pri key
+     */
+    private static String getKeyContent(String filename) throws IOException {
+        InputStream is = new FileInputStream(filename);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        String line;
+        String lines = "";
+        while ((line = reader.readLine()) != null) {
+            lines = lines + line;
+
+        }
+
+        return lines;
+    }
 
 
 
