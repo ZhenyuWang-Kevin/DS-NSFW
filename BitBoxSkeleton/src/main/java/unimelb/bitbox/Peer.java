@@ -57,6 +57,8 @@ public class Peer
 
     // Identifies the user number con
     private static int counter = 0;
+    private static String key_identity;
+    private static byte[] public_key;
 
 
 
@@ -135,8 +137,8 @@ public class Peer
 
             //加在这里！！！！！！ identifyName就是读取到的CLIENT的名字！！！！！！！
 
-
-
+            String authorized_keys = Configuration.getConfigurationValue("authorized_keys");
+//            getIdentityName(String pubKey)
 
             //下面这个是我随便写的，要放上输出的密码
             String encrKey = "TEST";
@@ -244,6 +246,24 @@ public class Peer
         }
 
         return lines;
+    }
+
+    /*
+     * get identity name
+     */
+    private static String getIdentityName(String pubKey){
+        // look for the Base64 encoded part of the line to decode
+        // both ssh-rsa and ssh-dss begin with "AAAA" due to the length bytes
+        for (String part : pubKey.split(" ")) {
+            if (part.contains("@")){
+                Peer.key_identity = part;
+            }
+            if (part.startsWith("AAAA")) {
+                Peer.public_key = Base64.getDecoder().decode(part);
+            }
+        }
+
+        return Peer.key_identity;
     }
 
 
