@@ -135,10 +135,18 @@ public class Peer
             JSONObject command = (JSONObject) parser.parse(message);
             String identifyName = (String) command.get("identity");
 
-            //加在这里！！！！！！ identifyName就是读取到的CLIENT的名字！！！！！！！
+
 
             String authorized_keys = Configuration.getConfigurationValue("authorized_keys");
-//            getIdentityName(String pubKey)
+            String pubKey = getKeyContent(authorized_keys);
+
+            if(identifyName.equals(getIdentityName(pubKey))){
+                System.out.println("成了！");
+
+            }
+//
+
+
 
             //下面这个是我随便写的，要放上输出的密码
             String encrKey = "TEST";
