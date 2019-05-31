@@ -196,8 +196,8 @@ public class UDPMain {
     }
 
     public void disconnectAll(){
-        Incomming.forEach((key, value) -> value.closeSocket());
-        Outgoing.forEach((key, value) -> value.closeSocket());
+        Incomming.forEach((key, value) -> value.disconnect());
+        Outgoing.forEach((key, value) -> value.disconnect());
     }
 
     public ArrayList<String> getAllConnections(){
