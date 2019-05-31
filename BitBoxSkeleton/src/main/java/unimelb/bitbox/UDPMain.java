@@ -186,7 +186,7 @@ public class UDPMain {
     }
 
     public boolean maximumConnectionReached(){
-        return Incomming.size() > Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
+        return Incomming.size() >= Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
     }
 
     public void removeConnection(String key){
