@@ -177,13 +177,11 @@ public class UDPMain {
     
 
     public boolean connectionExist(HostPort tmp){
-        return Incomming.containsKey(tmp) || Outgoing.containsKey(tmp) ? true : false;
+        return Incomming.containsKey(tmp.toString()) || Outgoing.containsKey(tmp.toString);
     }
 
     public boolean maximumConnectionReached(){
-        return Incomming.size() < Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"))
-                ? false :
-                true;
+        return Incomming.size() < Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
     }
 
     public void removeConnection(String key){
