@@ -114,6 +114,62 @@ public class ClientKeys {
         return lines;
     }
 
+    private static Map<String, byte[]> clientInfo = new HashMap<String, byte[]>();;
+
+    /*
+     * from the authorized public keys list to find this client's public key
+     * if not exist, then refuse connection request
+     * @param authorized public key strings
+     * @param current client's identity
+     */
+    private static Map<String, byte[]> getClientPubKey(String authorized_keys, String ClientIdentity){
+        byte[] tmp_key=null;
+        String tmp_identity=null;
+
+        // there are more than one key stores
+        if (authorized_keys.contains(",")){
+            // split the string by comma
+            for (String key : authorized_keys.split(",")){
+
+                // retrieve identity and public key
+                for (String part : key.split(" ")) {
+                    if (part.contains("@")){
+
+                        if (ClientIdentity.equals(part)){
+                            tmp_identity = part;
+                            clientInfo.put(tmp_identity, tmp_key);
+                            return clientInfo;
+                        }
+
+//                        Peer.key_identity = part;
+                    }
+                    if (part.startsWith("AAAA")) {
+                        tmp_key = Base64.getDecoder().decode(part);
+//                        Peer.public_key = Base64.getDecoder().decode(part);
+                    }
+                }
+            }
+        }else{
+            for (String part : authorized_keys.split(" ")) {
+                if (part.contains("@")){
+
+                    if (ClientIdentity.equals(part)){
+                        tmp_identity = part;
+                        clientInfo.put(tmp_identity, tmp_key);
+                        return clientInfo;
+                    }
+//                    Peer.key_identity = part;
+                }
+                if (part.startsWith("AAAA")) {
+                    tmp_key = Base64.getDecoder().decode(part);
+//                    Peer.public_key = Base64.getDecoder().decode(part);
+                }
+            }
+        }
+
+        return clientInfo;
+    }
+
 
 
 }
