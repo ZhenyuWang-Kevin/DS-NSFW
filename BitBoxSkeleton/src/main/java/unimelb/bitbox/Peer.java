@@ -55,7 +55,7 @@ public class Peer
         //Information of this Peer
         advertisedName = Configuration.getConfigurationValue("advertisedName");
         PeerPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
-
+        List_Peers = new HashMap<>();
 
 
 
