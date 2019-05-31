@@ -23,23 +23,6 @@ public class AES {
 
 
     /*
-    public static void main(String[] args) throws Exception {
-
-
-        // secret key in Hex string
-        String sKey = AES.generateSecreteKey(128);
-        System.out.println("secrete key: " + sKey);
-
-        byte[] encryptedMsg = AES.Encrypt("test encrypting AES", sKey);
-        System.out.println("encrypted secret key: " + encryptedMsg);
-
-        String decryptedMsg = AES.Decrypt(encryptedMsg, sKey);
-        System.out.println("decrypted secret key: " + decryptedMsg);
-
-    }
-*?
-
-    /*
      * generate secrete key for communicating with clients
      * @param length of the key generated
      * @return generated key
@@ -60,7 +43,6 @@ public class AES {
             log.warning("No such Algorithm");
         }
 
-        //        return skey.getEncoded();
         return parseByte2HexStr(skey.getEncoded());
     }
 
@@ -118,8 +100,6 @@ public class AES {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        // encoding using base64
-//        return Base64.getEncoder().encodeToString(encrypted);
         return encrypted;
     }
 
@@ -144,7 +124,6 @@ public class AES {
 
 
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 

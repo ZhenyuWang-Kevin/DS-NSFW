@@ -1,9 +1,6 @@
 package unimelb.bitbox;
 
 
-//import sun.security.util.DerInputStream;
-//import sun.security.util.DerValue;
-
 import java.security.PrivateKey;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.util.Base64;
@@ -71,44 +68,6 @@ public class RSAConverter {
     /*
      * HELPER method for converting local private key file into compatible format
      * from PEM PKCS#1 format to Privatekey format
-     * http://magnus-k-karlsson.blogspot.com/2018/05/how-to-read-pem-pkcs1-or-pkcs8-encoded.html
-     * @param local private key string
-     * @return Private key object
-     */
-    /*
-    public static PrivateKey convertPriKey(String key_str) throws Exception{
-
-        String new_key_str;
-        new_key_str = key_str.replaceAll("\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                .replace("-----END RSA PRIVATE KEY-----", "");
-
-        byte[] bytes = Base64.getDecoder().decode(new_key_str);
-
-        DerInputStream derReader = new DerInputStream(bytes);
-        DerValue[] seq = derReader.getSequence(0);
-        // skip version seq[0];
-        BigInteger modulus = seq[1].getBigInteger();
-        BigInteger publicExp = seq[2].getBigInteger();
-        BigInteger privateExp = seq[3].getBigInteger();
-        BigInteger prime1 = seq[4].getBigInteger();
-        BigInteger prime2 = seq[5].getBigInteger();
-        BigInteger exp1 = seq[6].getBigInteger();
-        BigInteger exp2 = seq[7].getBigInteger();
-        BigInteger crtCoef = seq[8].getBigInteger();
-
-        RSAPrivateCrtKeySpec keySpec =
-                new RSAPrivateCrtKeySpec(modulus, publicExp, privateExp, prime1, prime2, exp1, exp2, crtCoef);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-        System.out.println(privateKey);
-
-        return privateKey;
-    }*/
-
-
-    /*
-     * HELPER method for converting local private key file into compatible format
-     * from PEM PKCS#1 format to Privatekey format
      * https://stackoverflow.com/questions/7216969/getting-rsa-private-key-from-pem-base64-encoded-private-key-file/55339208#55339208
      * @param local private key string
      * @return Private key object
@@ -146,23 +105,6 @@ public class RSAConverter {
         System.arraycopy(byteArray2, 0, bytes, byteArray1.length, byteArray2.length);
         return bytes;
     }
-
-//    public static void main(String[] args) throws Exception {
-//        String priKey = ClientKeys.getKeyContent("bitboxclient_rsa");
-////        convertPriKey(priKey);
-//        String pubKey = ClientKeys.getKeyContent("bitboxclient_rsa.pub");
-//        PublicKey publicKey = RSAConverter.decodePublicKey(pubKey);
-//        String identity = RSAConverter.identity;
-//        System.out.println("identity is :"+identity);
-//
-//        PrivateKey privateKey = RSAConverter.convertPriKey(priKey);
-//        System.out.println("\nTesting converting pri key :\n");
-//        String encrypted = RSAEncryption.PubEncrypt("i am message for testing encryption", publicKey);
-//        System.out.println("Encrypted message : "+encrypted);
-//
-//        String decrypted = RSAEncryption.PriDecrypt(encrypted, privateKey);
-//        System.out.println("Decrypted message : "+decrypted);
-//    }
 
 
     private static String decodeType() {
