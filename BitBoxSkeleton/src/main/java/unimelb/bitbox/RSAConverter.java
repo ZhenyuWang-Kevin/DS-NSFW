@@ -1,8 +1,8 @@
 package unimelb.bitbox;
 
 
-import sun.security.util.DerInputStream;
-import sun.security.util.DerValue;
+//import sun.security.util.DerInputStream;
+//import sun.security.util.DerValue;
 
 import java.security.PrivateKey;
 import java.security.spec.RSAPrivateCrtKeySpec;
@@ -13,6 +13,13 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 
 
 
@@ -68,12 +75,12 @@ public class RSAConverter {
      * @param local private key string
      * @return Private key object
      */
+    /*
     public static PrivateKey convertPriKey(String key_str) throws Exception{
 
         String new_key_str;
         new_key_str = key_str.replaceAll("\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
                 .replace("-----END RSA PRIVATE KEY-----", "");
-//        System.out.println("new Private key\n"+new_key_str);
 
         byte[] bytes = Base64.getDecoder().decode(new_key_str);
 
@@ -96,7 +103,66 @@ public class RSAConverter {
         System.out.println(privateKey);
 
         return privateKey;
+    }*/
+
+
+    /*
+     * HELPER method for converting local private key file into compatible format
+     * from PEM PKCS#1 format to Privatekey format
+     * https://stackoverflow.com/questions/7216969/getting-rsa-private-key-from-pem-base64-encoded-private-key-file/55339208#55339208
+     * @param local private key string
+     * @return Private key object
+     */
+    public static PrivateKey convertPriKey(String key_str) throws GeneralSecurityException {
+        String new_key_str;
+        new_key_str = key_str.replaceAll("\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                .replace("-----END RSA PRIVATE KEY-----", "");
+        byte[] pkcs1Bytes = Base64.getDecoder().decode(new_key_str);
+        // We can't use Java internal APIs to parse ASN.1 structures, so we build a PKCS#8 key Java can understand
+        int pkcs1Length = pkcs1Bytes.length;
+        int totalLength = pkcs1Length + 22;
+        byte[] pkcs8Header = new byte[] {
+                0x30, (byte) 0x82, (byte) ((totalLength >> 8) & 0xff), (byte) (totalLength & 0xff), // Sequence + total length
+                0x2, 0x1, 0x0, // Integer (0)
+                0x30, 0xD, 0x6, 0x9, 0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0xD, 0x1, 0x1, 0x1, 0x5, 0x0, // Sequence: 1.2.840.113549.1.1.1, NULL
+                0x4, (byte) 0x82, (byte) ((pkcs1Length >> 8) & 0xff), (byte) (pkcs1Length & 0xff) // Octet string + length
+        };
+        byte[] pkcs8bytes = join(pkcs8Header, pkcs1Bytes);
+        return readPkcs8PrivateKey(pkcs8bytes);
     }
+
+    private static PrivateKey readPkcs8PrivateKey(byte[] pkcs8Bytes) throws GeneralSecurityException {
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA", "SunRsaSign");
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8Bytes);
+        try {
+            return keyFactory.generatePrivate(keySpec);
+        } catch (InvalidKeySpecException e) {
+            throw new IllegalArgumentException("Unexpected key format!", e);
+        }
+    }
+    private static byte[] join(byte[] byteArray1, byte[] byteArray2){
+        byte[] bytes = new byte[byteArray1.length + byteArray2.length];
+        System.arraycopy(byteArray1, 0, bytes, 0, byteArray1.length);
+        System.arraycopy(byteArray2, 0, bytes, byteArray1.length, byteArray2.length);
+        return bytes;
+    }
+
+//    public static void main(String[] args) throws Exception {
+//        String priKey = ClientKeys.getKeyContent("bitboxclient_rsa");
+////        convertPriKey(priKey);
+//        String pubKey = ClientKeys.getKeyContent("bitboxclient_rsa.pub");
+//        PublicKey publicKey = RSAConverter.decodePublicKey(pubKey);
+//        String identity = RSAConverter.identity;
+//        System.out.println("identity is :"+identity);
+//
+//        PrivateKey privateKey = RSAConverter.convertPriKey(priKey);
+//        System.out.println("\nTesting converting pri key :\n");
+//        String encrypted = RSAEncryption.PubEncrypt("i am message for testing encryption", publicKey);
+//        System.out.println("Encrypted message : "+encrypted);
+//
+//        String decrypted = RSAEncryption.PriDecrypt(encrypted, privateKey);
+//        System.out.println("Decrypted message : "+decrypted);
+//    }
 
 
     private static String decodeType() {
