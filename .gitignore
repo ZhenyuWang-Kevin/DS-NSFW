@@ -7,6 +7,9 @@ BitBoxSkeleton/.idea/misc.xml
 BitBoxSkeleton/.idea/vcs.xml
 BitBoxSkeleton/.idea/workspace.xml
 BItBoxSkeleton/.settings/*.prefs
+.classpath
+.project
+*.iml
 BitBoxSkeleton/out/artifacts/bitbox_jar/bitbox.jar
 BitBoxSkeleton/src/main/resource/META-INF/MANIFEST.MF
 BitBoxSkeleton/target/classes/unimelb/bitbox/Connection.class
