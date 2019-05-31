@@ -177,7 +177,7 @@ public class UDPMain {
     
 
     public boolean connectionExist(HostPort tmp){
-        return Incomming.containsKey(tmp.toString()) || Outgoing.containsKey(tmp.toString);
+        return Incomming.containsKey(tmp.toString()) || Outgoing.containsKey(tmp.toString());
     }
 
     public boolean maximumConnectionReached(){
