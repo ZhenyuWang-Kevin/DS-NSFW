@@ -91,52 +91,6 @@ public class UDPMain {
         }
     };
 
-    public boolean peerConnectWith(String ip, int port){
-        HostPort p = new HostPort(ip, port);
-        if(connectionExist(p)){
-            log.info("Already connected with " + p.toString());
-            return true;
-        } else {
-            Connection c = new Connection(p, "UDP");
-            c.UDPmainPatch(this);
-            if(c.flagActive){
-                Outgoing.put(p.toString(), c);
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    public boolean peerDisconnectWith(String ip, int port){
-        HostPort p = new HostPort(ip,port);
-        if (!connectionExist(p)){
-            log.info("Connection with " + p.toString() + " does not exist.");
-            return true;
-        } else {
-            if (Incomming.containsKey(p.toString())){
-                return Incomming.get(p.toString()).disconnect();
-            } else {
-                return Outgoing.get(p.toString()).disconnect();
-            }
-        }
-    }
-
-    public boolean forceDisconnection(String ip, int port){
-        HostPort p = new HostPort(ip, port);
-        if(!connectionExist(p)){
-            log.info("Connection with " + p.toString() + " does not exist.");
-            return true;
-        } else{
-            if (Incomming.containsKey(p.toString())){
-                Incomming.get(p.toString()).closeSocket();
-            } else {
-                Outgoing.get(p.toString()).closeSocket();
-            }
-            return true;
-        }
-    }
-
     public UDPMain(){
         // initalize the event buffer
         eventBuffer = new LinkedList<>();
@@ -158,7 +112,7 @@ public class UDPMain {
             // if connection does not exist
             if(!connectionExist(tmp)){
                 // try connect with the peer
-                Connection c = new Connection(tmp, "UDP");
+                Connection c = new Connection(tmp, "udp");
                 c.UDPmainPatch(this);
                 // if connect successful, add to Outgoing hashmap
                 if(c.flagActive){
@@ -177,6 +131,52 @@ public class UDPMain {
             communication.start();
         } else {
             log.warning("Please change the port and restart the bitbox peer!");
+        }
+    }
+
+    public boolean peerDisconnectWith(String ip, int port) {
+        HostPort p = new HostPort(ip, port);
+        if (!connectionExist(p)) {
+            log.info("Connection with " + p.toString() + " does not exist.");
+            return true;
+        } else {
+            if (Incomming.containsKey(p.toString())) {
+                return Incomming.get(p.toString()).disconnect();
+            } else {
+                return Outgoing.get(p.toString()).disconnect();
+            }
+        }
+    }
+
+    public boolean forceDisconnection(String ip, int port) {
+        HostPort p = new HostPort(ip, port);
+        if (!connectionExist(p)) {
+            log.info("Connection with " + p.toString() + " does not exist.");
+            return true;
+        } else {
+            if (Incomming.containsKey(p.toString())) {
+                Incomming.get(p.toString()).closeSocket();
+            } else {
+                Outgoing.get(p.toString()).closeSocket();
+            }
+            return true;
+        }
+    }
+
+    public boolean peerConnectWith(String ip, int port) {
+        HostPort p = new HostPort(ip, port);
+        if (connectionExist(p)) {
+            log.info("Already connected with " + p.toString());
+            return true;
+        } else {
+            Connection c = new Connection(p, "udp");
+            c.UDPmainPatch(this);
+            if (c.flagActive) {
+                Outgoing.put(p.toString(), c);
+                return true;
+            } else {
+                return false;
+            }
         }
     }
     

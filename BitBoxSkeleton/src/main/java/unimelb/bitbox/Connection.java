@@ -373,7 +373,7 @@ public class Connection implements Runnable {
         try{
             flagActive = false;
             log.info("Disconnect with " + peerInfo.toString());
-            if(mode.equals("udp")) {
+            if (!mode.equals("tcp")) {
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
             }
             if(in != null)
