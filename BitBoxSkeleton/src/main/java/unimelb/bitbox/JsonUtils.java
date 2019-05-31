@@ -80,7 +80,7 @@ public class JsonUtils {
     public static String CONNECTION_REFUSED(UDPMain UDPmain, String msg){
         Document d = new Document();
 
-        d.append("comamnd", "CONNECTION_REFUSED");
+        d.append("command", "CONNECTION_REFUSED");
         d.append("message", msg);
         d.append("peers", UDPmain.getAllConnections());
 
@@ -141,7 +141,7 @@ public class JsonUtils {
         d.append("command", "FILE_CREATE_RESPONSE");
         d.append("fileDescriptor", fDesc.toDoc());
         d.append("pathName", path);
-        d.append("meesage",msg);
+        d.append("message", msg);
         d.append("status",status);
 
         return d.toJson();
