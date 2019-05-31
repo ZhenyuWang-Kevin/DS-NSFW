@@ -341,7 +341,7 @@ public class JsonUtils {
 
     /**
      * AUTH_REQUEST, CHALLENGE RESPOND FOR THE CLIENT, SEND BY CLIENT
-     * @param msg
+     * @param idt is the client identity
      * @return base64 encoded json string
      */
     public static String AUTH_REQUEST(String idt){
@@ -358,10 +358,10 @@ public class JsonUtils {
      * @param status
      * @return
      */
-    public static String AUTH_RESPONSE_SUCCESS(String encrKey,String idt, boolean status){
+    public static String AUTH_RESPONSE_SUCCESS(String encrKey, boolean status){
         Document d = new Document();
-        d.append("AES128", "AUTH_RESPONSE");
-        d.append("identity", idt);
+        d.append("command", "AUTH_RESPONSE");
+        d.append("AES128", encrKey);
         d.append("Status",status);
         d.append("message", "public key found");
 
@@ -374,9 +374,9 @@ public class JsonUtils {
      * @param status
      * @return
      */
-    public static String AUTH_RESPONSE_FAIL(String encrKey,boolean status){
+    public static String AUTH_RESPONSE_FAIL(boolean status){
         Document d = new Document();
-        d.append("AES128", "AUTH_RESPONSE");
+        d.append("command", "AUTH_RESPONSE");
         d.append("Status",status);
         d.append("message", "public key not found");
 

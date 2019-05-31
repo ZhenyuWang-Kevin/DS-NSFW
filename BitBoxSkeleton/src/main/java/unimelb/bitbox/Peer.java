@@ -27,10 +27,6 @@ import org.json.simple.parser.ParseException;
 import unimelb.bitbox.util.Configuration;
 
 
-import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.FileSystemManager;
-import unimelb.bitbox.util.HostPort;
-
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +39,22 @@ import java.util.logging.Logger;
 
 
 
-public class Peer 
+import sun.security.util.DerInputStream;
+import sun.security.util.DerValue;
+
+import java.security.PrivateKey;
+import java.security.spec.RSAPrivateCrtKeySpec;
+import java.util.Base64;
+
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.DSAPublicKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+
+
+
+public class Peer
 {
 
     private ResponseHandler rh;
@@ -140,93 +151,134 @@ public class Peer
             String authorized_keys = Configuration.getConfigurationValue("authorized_keys");
             String pubKey = getKeyContent(authorized_keys);
 
+
+
+
+
+
+
+            //check if the client is successfully authorized by the server peer
+            boolean status = false;
             if(identifyName.equals(getIdentityName(pubKey))){
                 System.out.println("成了！");
 
+
+                status = true;
+
+                // convert public key string into compatible key format and get the identity
+                Public publicKey = RSAConverter.decodePublicKey(pubKey);
+                String identity = RSAConverter.identity;
+
+
+
+                //[BASE64 ENCODED, ENCRYPTED SECRET KEY]
+                String encrKey = "TEST";
+
+
+
+
+                // Automatically send Auth request first
+                output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,status));
+                output.flush();
+                System.out.println("==================Auth public key success==================");
+
+
+
+            }else{
+                // Automatically send Auth request first
+                status = false;
+                output.writeUTF(JsonUtils.AUTH_RESPONSE_FAIL(status));
+                output.flush();
+                System.out.println("==================Auth public key fail==================");
+
             }
-//
 
 
 
-            //下面这个是我随便写的，要放上输出的密码
-            String encrKey = "TEST";
 
-
-
+            if(status){
 
 
 
 
 
+                // Attempt to convert read data to JSON
+                message = input.readUTF();
+                System.out.println(message);
+
+                //message = decryptMessage(message);
 
 
-            boolean status = true;
-            // Automatically send Auth request first
-            output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,identifyName, status));
-            output.flush();
-            System.out.println("Auth public key success!");
 
 
-            // Attempt to convert read data to JSON
-            message = input.readUTF();
-            System.out.println(message);
-
-            //message = decryptMessage(message);
-
-            // Receive connection request from the client
-            command = (JSONObject) parser.parse(message);
-            String request = (String) command.get("command");
-            String targetIP = (String) command.get("host");
-            Integer targetPort = Integer.parseInt(command.get("port").toString());
-            boolean connectStatus = false;
-            boolean disconnectStatus = false;
 
 
-            switch (request) {
-                case "CONNECT_PEER_REQUEST":
 
-                    System.out.println("=================Connect peer request===============");
-                    s.connectTo(targetIP, targetPort);
-                    connectStatus = true;
+                // Receive connection request from the client
+                command = (JSONObject) parser.parse(message);
+                String request = (String) command.get("command");
+                String targetIP = (String) command.get("host");
+                Integer targetPort = Integer.parseInt(command.get("port").toString());
+                boolean connectStatus = false;
+                boolean disconnectStatus = false;
 
-                    if(connectStatus){
-                        output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP,targetPort,connectStatus));
+
+                switch (request) {
+                    case "CONNECT_PEER_REQUEST":
+
+                        System.out.println("=================Connect peer request===============");
+                        s.connectTo(targetIP, targetPort);
+                        connectStatus = true;
+
+                        if(connectStatus){
+                            output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP,targetPort,connectStatus));
+                            output.flush();
+                            List_Peers.put(targetIP,targetPort);
+
+                        }else{
+                            output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP,targetPort,connectStatus));
+                            output.flush();
+                        }
+                        break;
+                    case "DISCONNECT_PEER_REQUEST":
+
+                        System.out.println("=================Disconnect peer request===============");
+                        s.disconnectTo(targetIP, targetPort);
+                        disconnectStatus = true;
+
+                        if(disconnectStatus){
+                            output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP, targetPort, disconnectStatus));
+                            output.flush();
+                            List_Peers.remove(targetIP,targetPort);
+                        }else{
+                            output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP, targetPort, disconnectStatus));
+                            output.flush();
+                        }
+
+
+                        break;
+                    case "LIST_PEERS_REQUEST":
+
+                        System.out.println("=================List peers request================");
+                        output.writeUTF(JsonUtils.LIST_PEERS_RESPOND(List_Peers));
                         output.flush();
-                        List_Peers.put(targetIP,targetPort);
 
-                    }else{
-                        output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP,targetPort,connectStatus));
-                        output.flush();
-                    }
-                    break;
-                case "DISCONNECT_PEER_REQUEST":
-
-                    System.out.println("=================Disconnect peer request===============");
-                    s.disconnectTo(targetIP, targetPort);
-                    disconnectStatus = true;
-
-                    if(disconnectStatus){
-                        output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP, targetPort, disconnectStatus));
-                        output.flush();
-                        List_Peers.remove(targetIP,targetPort);
-                    }else{
-                        output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP, targetPort, disconnectStatus));
-                        output.flush();
-                    }
+                        break;
+                    default:
+                        System.out.println("Unknown command from client");
+                        break;
+                }
 
 
-                    break;
-                case "LIST_PEERS_REQUEST":
 
-                    System.out.println("=================List peers request================");
-                    output.writeUTF(JsonUtils.LIST_PEERS_RESPOND(List_Peers));
-                    output.flush();
 
-                    break;
-                default:
-                    System.out.println("Unknown command from client");
-                    break;
+
+
             }
+
+
+
+
 
 
 
