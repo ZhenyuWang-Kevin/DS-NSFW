@@ -1,56 +1,21 @@
 package unimelb.bitbox;
 
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
-
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-
-import javax.net.ServerSocketFactory;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
 import unimelb.bitbox.util.Configuration;
 
-
+import javax.net.ServerSocketFactory;
 import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Iterator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.logging.Logger;
-
-
-
-import sun.security.util.DerInputStream;
-import sun.security.util.DerValue;
-
-import java.security.PrivateKey;
-import java.security.spec.RSAPrivateCrtKeySpec;
-import java.util.Base64;
-
-import java.math.BigInteger;
-import java.security.KeyFactory;
 import java.security.PublicKey;
-import java.security.spec.DSAPublicKeySpec;
-import java.security.spec.RSAPublicKeySpec;
-
-
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.logging.Logger;
 
 
 

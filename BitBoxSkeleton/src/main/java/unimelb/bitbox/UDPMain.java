@@ -1,13 +1,18 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 import unimelb.bitbox.util.HostPort;
-import unimelb.bitbox.util.Document;
 
-import java.util.*;
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.logging.Logger;
 
 
@@ -181,16 +186,13 @@ public class UDPMain {
     }
 
     public boolean maximumConnectionReached(){
-        return Incomming.size() < Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
+        return Incomming.size() > Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
     }
 
     public void removeConnection(String key){
         if(Incomming.containsKey(key)){
             Incomming.remove(key);
-        }
-        else if(Outgoing.containsKey(key)){
-            Outgoing.remove(key);
-        }
+        } else Outgoing.remove(key);
     }
 
     public void disconnectAll(){
@@ -201,8 +203,8 @@ public class UDPMain {
     public ArrayList<String> getAllConnections(){
         ArrayList<String> connections = new ArrayList<>();
 
-        Incomming.forEach((key, value)-> connections.add(key.toString()));
-        Outgoing.forEach((key, value)-> connections.add(key.toString()));
+        Incomming.forEach((key, value) -> connections.add(key));
+        Outgoing.forEach((key, value) -> connections.add(key));
         return connections;
 
     }

@@ -1,36 +1,15 @@
 package unimelb.bitbox;
 
 import java.io.*;
-
-import javax.crypto.Cipher;
-import java.security.*;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-
-import java.util.Base64;
-
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.RSAPrivateCrtKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
-
-import org.junit.Ignore;
-import org.junit.Test;
-
-import sun.security.util.DerInputStream;
-import sun.security.util.DerValue;
 
 /*
  * For client to get and read public and private key from local files

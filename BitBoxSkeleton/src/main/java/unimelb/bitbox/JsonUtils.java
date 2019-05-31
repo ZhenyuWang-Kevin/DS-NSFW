@@ -1,13 +1,13 @@
 package unimelb.bitbox;
 
-import unimelb.bitbox.util.*;
-
-import java.util.Base64;
-
+import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.Document;
+import unimelb.bitbox.util.FileSystemManager;
+import unimelb.bitbox.util.HostPort;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * A Json communication protocol static class.
@@ -64,7 +64,7 @@ public class JsonUtils {
     public static String CONNECTION_REFUSED(TCPMain TCPmain, String msg){
         Document d = new Document();
 
-        d.append("comamnd", "CONNECTION_REFUSED");
+        d.append("command", "CONNECTION_REFUSED");
         d.append("message", msg);
         d.append("peers", TCPmain.getAllConnections());
 
@@ -424,7 +424,7 @@ public class JsonUtils {
             Object host = entry.getValue();
             String port = hostAndPeer.toString().substring(hostAndPeer.toString().length()-4);
             d.append("host", port);
-            d.append("port",Integer.parseInt(port.toString()));
+            d.append("port", Integer.parseInt(port));
         }
         d.append("","]");
         return d.toJson();
