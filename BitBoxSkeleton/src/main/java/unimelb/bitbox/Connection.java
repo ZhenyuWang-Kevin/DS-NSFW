@@ -134,9 +134,7 @@ public class Connection implements Runnable {
     }
 
     public void removeTransferTask(String key){
-        synchronized (this){
-            threadManager.remove(key);
-        }
+        threadManager.remove(key);
     }
 
     public void TCPmainPatch(TCPMain m){
