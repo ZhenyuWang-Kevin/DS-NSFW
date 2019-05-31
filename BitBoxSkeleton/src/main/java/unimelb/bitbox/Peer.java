@@ -69,7 +69,7 @@ public class Peer
     private static byte[] public_key;
 
 
-    private static HashMap<Integer, String> List_Peers;
+    private static HashMap<String, String> List_Peers;
 
     private static Map<String, String> clientInfo = new HashMap<String, String>();
 
@@ -223,7 +223,6 @@ public class Peer
                         System.out.println("=================Connect peer request===============");
                         String targetIP1 = (String) command.get("host");
                         Integer targetPort1 = Integer.parseInt(command.get("port").toString());
-
                         s.connectTo(targetIP1, targetPort1);
                         connectStatus = true;
 
@@ -233,10 +232,11 @@ public class Peer
                                     (JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP1,targetPort1,connectStatus),sKey)));
                             output.flush();
 
-                            List_Peers.put(targetPort1,targetIP1);
+                            String hostAndPeer1 = targetIP1+targetPort1;
+
+                            List_Peers.put(hostAndPeer1,targetIP1);
 
                         }else{
-
 
                             output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
                                     (JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP1,targetPort1,connectStatus),sKey)));
@@ -259,7 +259,9 @@ public class Peer
                                     (JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP2, targetPort2, disconnectStatus),sKey)));
                             output.flush();
 
-                            List_Peers.remove(targetPort2,targetIP2);
+                            String hostAndPeer2 = targetIP2+targetPort2;
+
+                            List_Peers.remove(hostAndPeer2,targetIP2);
 
 
                         }else{
@@ -273,12 +275,13 @@ public class Peer
                         break;
                     case "LIST_PEERS_REQUEST":
 
-                        System.out.println("=================List peers request================");
-
-                        output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
-                                (JsonUtils.LIST_PEERS_RESPOND(List_Peers),sKey)));
-                        output.flush();
-
+                        Iterator iter = List_Peers.entrySet().iterator();
+                        if (iter.hasNext()){
+                            System.out.println("=================List peers request================");
+                            output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                    (JsonUtils.LIST_PEERS_RESPOND(List_Peers),sKey)));
+                            output.flush();
+                        }
                         break;
                     default:
                         System.out.println("Unknown command from client");

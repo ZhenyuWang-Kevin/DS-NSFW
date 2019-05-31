@@ -413,18 +413,20 @@ public class JsonUtils {
      * @param List_Peers
      * @return
      */
-    public static String LIST_PEERS_RESPOND(HashMap<Integer, String> List_Peers){
+    public static String LIST_PEERS_RESPOND(HashMap<String, String> List_Peers){
         Document d = new Document();
-
+        d.append("command", "LIST_PEERS_RESPONSE");
+        d.append("peers", "[");
         Iterator iter = List_Peers.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry entry = (Map.Entry) iter.next();
-            Object host = entry.getKey();
-            Object port = entry.getValue();
-            d.append("host", host.toString());
+            Object hostAndPeer = entry.getKey();
+            Object host = entry.getValue();
+            String port = hostAndPeer.toString().substring(hostAndPeer.toString().length()-4);
+            d.append("host", port);
             d.append("port",Integer.parseInt(port.toString()));
-
         }
+        d.append("","]");
         return d.toJson();
     }
 

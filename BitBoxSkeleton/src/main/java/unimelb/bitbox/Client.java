@@ -108,14 +108,14 @@ public class Client
             System.out.println("===============Send auth request=============");
 
             // Read Auth reply from server..
-            String message = input.readUTF();
+            String message1 = input.readUTF();
 
-            JSONObject command = (JSONObject) parser.parse(message);
+            JSONObject command1 = (JSONObject) parser.parse(message1);
 
-            authStatus = (boolean) command.get("Status");
+            authStatus = (boolean) command1.get("Status");
 
             // Received the encrypted Secret key from the peer
-            String AES128 = (String) command.get("AES128");
+            String AES128 = (String) command1.get("AES128");
 
             // Read local private key file and get key strings
             String priKey = ClientKeys.getKeyContent("bitboxclient_rsa");
@@ -163,16 +163,18 @@ public class Client
             }else{
 
                 System.out.println("===============Oh no Auth fail=============");
-                System.out.println(message);
+                System.out.println(message1);
             }
 
 
 
             System.out.println("===============Receive operation respond from client===============");
-            // Receive connect respond from server..
-            message = input.readUTF();
-            command = (JSONObject) parser.parse(message);
-            System.out.println(decrypteMessage((String) command.get("payload"),sKey));
+            // Receive connect respond from server
+            String message2 = input.readUTF();
+            JSONObject command2 = (JSONObject) parser.parse(message2);
+            String ope_respond = decrypteMessage((String) command2.get("payload"),sKey);
+            System.out.println(ope_respond);
+
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
