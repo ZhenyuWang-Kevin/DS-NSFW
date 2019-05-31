@@ -25,6 +25,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import javax.crypto.Cipher;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
+
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 import unimelb.bitbox.util.HostPort;
@@ -47,6 +52,7 @@ public class Client
     private static int targetPort;
 
     private static String identityName;
+
 
     private static boolean authStatus;
 
@@ -105,52 +111,102 @@ public class Client
             String message = input.readUTF();
 
             JSONObject command = (JSONObject) parser.parse(message);
+
             authStatus = (boolean) command.get("Status");
 
+            // Received the encrypted Secret key from the peer
+            String AES128 = (String) command.get("AES128");
 
+            // Read local private key file and get key strings
+            String priKey = ClientKeys.getKeyContent("bitboxclient_rsa");
+            // convert private key into compatible key format
+            PrivateKey privateKey = RSAConverter.convertPriKey(priKey);
 
-            System.out.println(message);
-
+            // get the secret key after decrypting
+            String sKey = RSAEncryption.PriDecrypt(AES128, privateKey);
 
             if (authStatus) {
-                System.out.println("===============Receive auth request=============");
-                System.out.println("Auth success, go to the operation");
+                System.out.println("===============SKEY success return go to the operation=============");
                 //list_peers, connect_peer, disconnect_peer
+                String encrypted_message = "";
                 switch (operation) {
                     case "list_peers":
                         System.out.println("===============Send list peers request===============");
-                        output.writeUTF(JsonUtils.LIST_PEERS_REQUEST());
+
+                        output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                (JsonUtils.LIST_PEERS_REQUEST(),sKey)));
                         output.flush();
+
                         break;
+
                     case "connect_peer":
                         System.out.println("===============Send connection request===============");
-                        output.writeUTF(JsonUtils.CONNECT_PEER_REQUEST(targetIP, targetPort));
+
+                        output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                (JsonUtils.CONNECT_PEER_REQUEST(targetIP, targetPort),sKey)));
                         output.flush();
+
                         break;
+
                     case "disconnect_peer":
                         System.out.println("===============Send disconnection request===============");
-                        output.writeUTF(JsonUtils.DISCONNECT_PEER_REQUEST(targetIP, targetPort));
+
+                        output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                (JsonUtils.DISCONNECT_PEER_REQUEST(targetIP, targetPort),sKey)));
                         output.flush();
+
                         break;
                     default:
                         System.out.println("Unknown command");
                         break;
                 }
+            }else{
 
+                System.out.println("===============Oh no Auth fail=============");
+                System.out.println(message);
             }
 
+
+
+            System.out.println("===============Receive operation respond from client===============");
             // Receive connect respond from server..
             message = input.readUTF();
             command = (JSONObject) parser.parse(message);
-            String list_respond = (String) command.get("message");
-
-            System.out.println(message);
+            System.out.println(decrypteMessage((String) command.get("payload"),sKey));
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
-        } catch (IOException | ParseException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+
+    /**
+     * Encrypte message
+     * @param message input message
+     * @param sKey secret key used to encrypte message
+     * @return
+     */
+    private static String encrypteMessage(String message, String sKey){
+
+        byte[] tmp = AES.Encrypt(message, sKey);
+        return AES.parseByte2HexStr(tmp);
+
+    }
+
+
+    /**
+     * Decrypte message
+     * @param decrypteMessage input message
+     * @param sKey secret key used to encrypte message
+     * @return
+     */
+    private static String decrypteMessage(String encrypteMessage, String sKey){
+
+        byte[] tmp = AES.parseHexStr2Byte(encrypteMessage);
+        return AES.Decrypt(tmp, sKey);
 
     }
 
