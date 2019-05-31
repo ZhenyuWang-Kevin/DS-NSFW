@@ -22,6 +22,7 @@ public class AES {
     private static Logger log = Logger.getLogger(Key.class.getName());
 
 
+    /*
     public static void main(String[] args) throws Exception {
 
 
@@ -36,7 +37,7 @@ public class AES {
         System.out.println("decrypted secret key: " + decryptedMsg);
 
     }
-
+*?
 
     /*
      * generate secrete key for communicating with clients
@@ -64,7 +65,7 @@ public class AES {
     }
 
     // HELPER method for converting bytes into Hex string https://blog.csdn.net/qy20115549/article/details/83105736
-    private static String parseByte2HexStr(byte buf[]) {
+    public static String parseByte2HexStr(byte buf[]) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < buf.length; i++) {
             String hex = Integer.toHexString(buf[i] & 0xFF);
@@ -77,7 +78,7 @@ public class AES {
     }
 
     // HELPER method for converting hex string into bytes string https://blog.csdn.net/qy20115549/article/details/83105736
-    private static byte[] parseHexStr2Byte(String hexStr) {
+    public static byte[] parseHexStr2Byte(String hexStr) {
         if (hexStr.length() < 1)
             return null;
         byte[] result = new byte[hexStr.length()/2];

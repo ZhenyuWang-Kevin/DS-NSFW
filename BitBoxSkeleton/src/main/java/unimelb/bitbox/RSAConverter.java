@@ -73,7 +73,7 @@ public class RSAConverter {
         String new_key_str;
         new_key_str = key_str.replaceAll("\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
                 .replace("-----END RSA PRIVATE KEY-----", "");
-        System.out.println("new Private key\n"+new_key_str);
+//        System.out.println("new Private key\n"+new_key_str);
 
         byte[] bytes = Base64.getDecoder().decode(new_key_str);
 

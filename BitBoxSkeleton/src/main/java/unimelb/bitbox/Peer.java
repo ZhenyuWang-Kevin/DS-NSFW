@@ -11,13 +11,7 @@ import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.SecretKeySpec;
 import javax.net.ServerSocketFactory;
 
 import org.json.simple.JSONObject;
@@ -33,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -53,6 +48,11 @@ import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
 
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+
+
+
 
 public class Peer
 {
@@ -61,20 +61,17 @@ public class Peer
     private static String advertisedName;
     private static int PeerPort;
 
-    private static HashMap<Integer, Integer> List_Client;
-
     //private static ServerMain s;
     private static ServerMain s;
 
     // Identifies the user number con
-    private static int counter = 0;
     private static String key_identity;
     private static byte[] public_key;
 
 
-
     private static HashMap<String, Integer> List_Peers;
 
+    private static Map<String, String> clientInfo = new HashMap<String, String>();
 
 
     private static Logger log = Logger.getLogger(Peer.class.getName());
@@ -101,7 +98,6 @@ public class Peer
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-
 
 
         ServerSocketFactory factory = ServerSocketFactory.getDefault();
@@ -147,41 +143,34 @@ public class Peer
             String identifyName = (String) command.get("identity");
 
 
-
             String authorized_keys = Configuration.getConfigurationValue("authorized_keys");
-            String pubKey = getKeyContent(authorized_keys);
-
-
-
-
-
 
 
             //check if the client is successfully authorized by the server peer
             boolean status = false;
-            if(identifyName.equals(getIdentityName(pubKey))){
-                System.out.println("成了！");
-
+            String sKey = "";
+            if (getClientPubKey(authorized_keys, identifyName)){
 
                 status = true;
 
+
                 // convert public key string into compatible key format and get the identity
-                Public publicKey = RSAConverter.decodePublicKey(pubKey);
-                String identity = RSAConverter.identity;
+                String pubKey = clientInfo.get(identifyName);
+
+                // convert public key string into compatible key format and get the identity
+                PublicKey publicKey = RSAConverter.decodePublicKey(pubKey);
 
 
+                sKey = AES.generateSecreteKey(128);
 
                 //[BASE64 ENCODED, ENCRYPTED SECRET KEY]
-                String encrKey = "TEST";
-
-
-
+                // encrypt secrete key with client’s public key
+                String encrKey = RSAEncryption.PubEncrypt(sKey,publicKey);
 
                 // Automatically send Auth request first
                 output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,status));
                 output.flush();
                 System.out.println("==================Auth public key success==================");
-
 
 
             }else{
@@ -193,32 +182,25 @@ public class Peer
 
             }
 
-
-
-
             if(status){
-
-
-
-
 
                 // Attempt to convert read data to JSON
                 message = input.readUTF();
                 System.out.println(message);
 
-                //message = decryptMessage(message);
 
-
-
-
-
-
+                command = (JSONObject) parser.parse(message);
 
                 // Receive connection request from the client
-                command = (JSONObject) parser.parse(message);
+                String decryptedMsg = decrypteMessage((String) command.get("payload"),sKey);
+
+                System.out.println("=================Receive request from client===============");
+                System.out.println(decryptedMsg);
+
+                command = (JSONObject) parser.parse(decryptedMsg);
                 String request = (String) command.get("command");
-                String targetIP = (String) command.get("host");
-                Integer targetPort = Integer.parseInt(command.get("port").toString());
+
+
                 boolean connectStatus = false;
                 boolean disconnectStatus = false;
 
@@ -227,31 +209,50 @@ public class Peer
                     case "CONNECT_PEER_REQUEST":
 
                         System.out.println("=================Connect peer request===============");
-                        s.connectTo(targetIP, targetPort);
+                        String targetIP1 = (String) command.get("host");
+                        Integer targetPort1 = Integer.parseInt(command.get("port").toString());
+
+                        s.connectTo(targetIP1, targetPort1);
                         connectStatus = true;
 
                         if(connectStatus){
-                            output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP,targetPort,connectStatus));
+
+                            output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                    (JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP1,targetPort1,connectStatus),sKey)));
                             output.flush();
-                            List_Peers.put(targetIP,targetPort);
+
+                            List_Peers.put(targetIP1,targetPort1);
 
                         }else{
-                            output.writeUTF(JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP,targetPort,connectStatus));
+
+
+                            output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                    (JsonUtils.CONNECT_PEER_RESOPONSE_FAIL(targetIP1,targetPort1,connectStatus),sKey)));
                             output.flush();
+
                         }
                         break;
                     case "DISCONNECT_PEER_REQUEST":
 
                         System.out.println("=================Disconnect peer request===============");
-                        s.disconnectTo(targetIP, targetPort);
+                        String targetIP2 = (String) command.get("host");
+                        Integer targetPort2 = Integer.parseInt(command.get("port").toString());
+
+                        s.disconnectTo(targetIP2, targetPort2);
                         disconnectStatus = true;
 
                         if(disconnectStatus){
-                            output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP, targetPort, disconnectStatus));
+
+                            output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                    (JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP2, targetPort2, disconnectStatus),sKey)));
                             output.flush();
-                            List_Peers.remove(targetIP,targetPort);
+                            List_Peers.remove(targetIP2,targetPort2);
+
+
                         }else{
-                            output.writeUTF(JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP, targetPort, disconnectStatus));
+
+                            output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                    (JsonUtils.DISCONNECT_PEER_RESOPONSE_FAIL(targetIP2, targetPort2, disconnectStatus),sKey)));
                             output.flush();
                         }
 
@@ -260,7 +261,9 @@ public class Peer
                     case "LIST_PEERS_REQUEST":
 
                         System.out.println("=================List peers request================");
-                        output.writeUTF(JsonUtils.LIST_PEERS_RESPOND(List_Peers));
+
+                        output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                (JsonUtils.LIST_PEERS_RESPOND(List_Peers),sKey)));
                         output.flush();
 
                         break;
@@ -269,24 +272,13 @@ public class Peer
                         break;
                 }
 
-
-
-
-
-
             }
 
 
-
-
-
-
-
-        } catch (IOException | ParseException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 
 
 
@@ -327,6 +319,87 @@ public class Peer
     }
 
 
+
+    /*
+     * from the authorized public keys list to find this client's public key
+     * if not exist, then refuse connection request
+     * @param authorized public key strings
+     * @param current client's identity
+     */
+    private static Boolean getClientPubKey(String authorized_keys, String ClientIdentity){
+        String tmp_key=null;
+        String tmp_identity=null;
+
+        // there are more than one key stores
+        if (authorized_keys.contains(",")){
+            // split the string by comma
+            for (String key : authorized_keys.split(",")){
+
+                // retrieve identity and public key
+                for (String part : key.split(" ")) {
+                    if (part.contains("@")){
+
+                        if (ClientIdentity.equals(part)){
+                            tmp_identity = part;
+                            clientInfo.put(tmp_identity, tmp_key);
+                            return true;
+                        }
+
+                    }
+                    if (part.startsWith("AAAA")) {
+                        tmp_key = part;
+                    }
+                }
+            }
+        }else{
+            for (String part : authorized_keys.split(" ")) {
+                if (part.contains("@")){
+
+                    if (ClientIdentity.equals(part)){
+                        tmp_identity = part;
+                        clientInfo.put(tmp_identity, tmp_key);
+                        return true;
+                    }
+                }
+                if (part.startsWith("AAAA")) {
+                    tmp_key = part;
+                }
+            }
+        }
+
+        return false;
+
+    }
+
+
+    /**
+     * Encrypte message
+     * @param message input message
+     * @param sKey secret key used to encrypte message
+     * @return
+     */
+    private static String encrypteMessage(String message, String sKey){
+
+        byte[] tmp = AES.Encrypt(message, sKey);
+
+        return AES.parseByte2HexStr(tmp);
+
+    }
+
+
+    /**
+     * Decrypte message
+     * @param decrypteMessage input message
+     * @param sKey secret key used to encrypte message
+     * @return
+     */
+    private static String decrypteMessage(String encrypteMessage, String sKey){
+
+        byte[] tmp = AES.parseHexStr2Byte(encrypteMessage);
+
+        return AES.Decrypt(tmp, sKey);
+
+    }
 
 
 

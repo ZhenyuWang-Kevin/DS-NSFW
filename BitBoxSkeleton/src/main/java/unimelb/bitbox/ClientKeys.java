@@ -39,6 +39,8 @@ import sun.security.util.DerValue;
 public class ClientKeys {
     private static Map<Integer, String> keyMap = new HashMap<Integer, String>();
 
+
+    /*
     public static void main(String[] args) throws Exception {
 
         // Read local private key file and get key strings
@@ -73,6 +75,9 @@ public class ClientKeys {
 
     }
 
+
+     */
+
     public static void genKeyPair() throws NoSuchAlgorithmException {
         // KeyPairGenerator to generate pub/pri pair
         KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
@@ -97,7 +102,7 @@ public class ClientKeys {
      * @param key file name
      * @return pub/pri key
      */
-    private static String getKeyContent(String filename) throws IOException {
+    public static String getKeyContent(String filename) throws IOException {
         InputStream is = new FileInputStream(filename);
 //        InputStream is = ClientKeys.class.getResourceAsStream(filename);
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -114,7 +119,7 @@ public class ClientKeys {
         return lines;
     }
 
-    private static Map<String, byte[]> clientInfo = new HashMap<String, byte[]>();;
+    private static Map<String, byte[]> clientInfo = new HashMap<String, byte[]>();
 
     /*
      * from the authorized public keys list to find this client's public key
