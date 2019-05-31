@@ -69,7 +69,7 @@ public class Peer
     private static byte[] public_key;
 
 
-    private static HashMap<String, Integer> List_Peers;
+    private static HashMap<Integer, String> List_Peers;
 
     private static Map<String, String> clientInfo = new HashMap<String, String>();
 
@@ -233,7 +233,7 @@ public class Peer
                                     (JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP1,targetPort1,connectStatus),sKey)));
                             output.flush();
 
-                            List_Peers.put(targetIP1,targetPort1);
+                            List_Peers.put(targetPort1,targetIP1);
 
                         }else{
 
@@ -258,7 +258,8 @@ public class Peer
                             output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
                                     (JsonUtils.DISCONNECT_PEER_RESOPONSE_SUCCESS(targetIP2, targetPort2, disconnectStatus),sKey)));
                             output.flush();
-                            List_Peers.remove(targetIP2,targetPort2);
+
+                            List_Peers.remove(targetPort2,targetIP2);
 
 
                         }else{

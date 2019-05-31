@@ -413,7 +413,7 @@ public class JsonUtils {
      * @param List_Peers
      * @return
      */
-    public static String LIST_PEERS_RESPOND(HashMap<String, Integer> List_Peers){
+    public static String LIST_PEERS_RESPOND(HashMap<Integer, String> List_Peers){
         Document d = new Document();
 
         Iterator iter = List_Peers.entrySet().iterator();
