@@ -146,7 +146,7 @@ public class Peer
                 // Automatically send Auth request first
                 output.writeUTF(JsonUtils.AUTH_RESPONSE_SUCCESS(encrKey,status));
                 output.flush();
-                System.out.println("==================Auth public key success==================");
+                System.out.println("==================Find public key success==================");
 
 
             }else{
@@ -239,13 +239,15 @@ public class Peer
 
                         break;
                     case "LIST_PEERS_REQUEST":
-
+                        System.out.println("=================List peers request================");
                         Iterator iter = List_Peers.entrySet().iterator();
                         if (iter.hasNext()){
-                            System.out.println("=================List peers request================");
+                            System.out.println("=================Send peers list================");
                             output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
                                     (JsonUtils.LIST_PEERS_RESPOND(List_Peers),sKey)));
                             output.flush();
+                        }else{
+                            System.out.println("=================Current no peer connect================");
                         }
                         break;
                     default:
