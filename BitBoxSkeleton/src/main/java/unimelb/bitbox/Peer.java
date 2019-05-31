@@ -28,6 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -227,7 +228,6 @@ public class Peer
                         connectStatus = true;
 
                         if(connectStatus){
-
                             output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
                                     (JsonUtils.CONNECT_PEER_RESOPONSE_SUCCESS(targetIP1,targetPort1,connectStatus),sKey)));
                             output.flush();
