@@ -242,6 +242,9 @@ public class Peer {
                             output.flush();
                         } else {
                             System.out.println("===============Current no peer connect, return noting================");
+                            output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
+                                    (JsonUtils.LIST_PEERS_RESPOND(List_Peers), sKey)));
+                            output.flush();
                         }
                         break;
                     default:
