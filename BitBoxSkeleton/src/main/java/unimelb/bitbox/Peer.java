@@ -188,8 +188,8 @@ public class Peer
                         System.out.println("=================Connect peer request===============");
                         String targetIP1 = (String) command.get("host");
                         Integer targetPort1 = Integer.parseInt(command.get("port").toString());
-                        s.connectTo(targetIP1, targetPort1);
-                        connectStatus = true;
+
+                        connectStatus = s.connectTo(targetIP1, targetPort1);
 
                         if(connectStatus){
                             output.writeUTF(JsonUtils.PAYLOAD(encrypteMessage
@@ -214,8 +214,8 @@ public class Peer
                         String targetIP2 = (String) command.get("host");
                         Integer targetPort2 = Integer.parseInt(command.get("port").toString());
 
-                        s.disconnectTo(targetIP2, targetPort2);
-                        disconnectStatus = true;
+
+                        disconnectStatus = s.disconnectTo(targetIP2, targetPort2);
 
                         if(disconnectStatus){
 
@@ -246,7 +246,7 @@ public class Peer
                                     (JsonUtils.LIST_PEERS_RESPOND(List_Peers),sKey)));
                             output.flush();
                         }else{
-                            System.out.println("=================Current no peer connect================");
+                            System.out.println("===============Current no peer connect, return noting================");
                         }
                         break;
                     default:
