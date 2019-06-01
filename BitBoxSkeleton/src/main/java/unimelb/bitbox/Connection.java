@@ -151,13 +151,19 @@ public class Connection implements Runnable {
         switch(json.getString("command")){
             case "INVALID_PROTOCOL":
                 // TODO disconnect the connection
-                disconnect();
+                if(!ServerMain.closeSequence)
+                    disconnect();
+                else
+                    closeSocket();
                 break;
 
             case "HANDSHAKE_REQUEST":
                 // TODO response with INVALID PROTOCOL, then disconnect the connection
                 sendCommand(JsonUtils.INVALID_PROTOCOL("Invalid command!!"));
-                disconnect();
+                if(!ServerMain.closeSequence)
+                    disconnect();
+                else
+                    closeSocket();
                 break;
 
             case "FILE_CREATE_REQUEST":
@@ -350,13 +356,18 @@ public class Connection implements Runnable {
                         byte[] buffer = new byte[blockSize];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
-                        String data = new String(buf.getData(),0,buf.getLength());
-                        if(data.equals("")){
-                            log.info("disconnect with " + peerInfo.toString());
-                            flagActive = false;
+                        InetAddress incomeAddr = InetAddress.getByName(buf.getAddress().getHostAddress());
+                        if(!incomeAddr.equals(InetAddress.getByName(peerInfo.host))){
+                            log.warning("un-match ip address detected, possible port hijacking. Ignore incoming message");
                         } else {
-                            log.info("receiving data: " + data);
-                            receiveCommand(Document.parse(data));
+                            String data = new String(buf.getData(), 0, buf.getLength());
+                            if (data.equals("")) {
+                                log.info("disconnect with " + peerInfo.toString());
+                                flagActive = false;
+                            } else {
+                                log.info("receiving data: " + data);
+                                receiveCommand(Document.parse(data));
+                            }
                         }
                     } catch(IOException e){
                         log.warning(e.getMessage());
@@ -371,17 +382,15 @@ public class Connection implements Runnable {
         try{
             flagActive = false;
             log.info("Disconnect with " + peerInfo.toString());
-
+            sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
 
             if(in != null)
                 in.close();
             if(out != null)
-                sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 out.close();
             if(TCPSocket != null)
                 TCPSocket.close();
             if(UDPSocket != null)
-                sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
                 UDPSocket.close();
         }catch(Exception e){
             log.info("Socket closed");
@@ -419,7 +428,7 @@ public class Connection implements Runnable {
                     }
 
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.warning(e.getMessage());
             }
     }
@@ -654,6 +663,7 @@ public class Connection implements Runnable {
                     // available for connection, send HANDSHAKE RESPONSE
                     out.write(JsonUtils.HANDSHAKE_RESPONSE());
                     out.newLine();
+                    out.flush();
                     flagActive = true;
 
                     // start the thread for the socket
