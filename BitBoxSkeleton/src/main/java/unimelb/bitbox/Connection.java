@@ -440,16 +440,19 @@ public class Connection implements Runnable {
 
     // when peers reached maximum connection, search for its adjacent peers and trying to connect
     // Huge chunk of private code, don't bother read through it.
-    private boolean searchThroughPeers(ArrayList<Document> _peers) {
-        ArrayList<Document> peers = _peers;
-
+    private boolean searchThroughPeers(ArrayList<String> _peers) {
+        ArrayList<String> peers = _peers;
+        HashMap<String, String> hashPeer = new HashMap<>();
+        for(int i = 0; i < peers.size(); i++){
+            hashPeer.put(peers.get(i), peers.get(i));
+        }
         boolean connectionEstablished = false;
 
         while (!connectionEstablished) {
             if (peers.size() == 0) {
                 return false;
             }
-            HostPort peer = new HostPort(peers.remove(0));
+            HostPort peer = new HostPort(new String(peers.remove(0)));
 
             if (mode.equals("tcp")) {
                 if (!TCPmain.connectionExist(peer)) {
@@ -476,7 +479,13 @@ public class Connection implements Runnable {
                             t.start();
                         } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
                             // TODO breath first search for other available peers
-                            peers.addAll((ArrayList<Document>) d.get("peers"));
+                            ArrayList<String> tmp = (ArrayList<String>) d.get("peers");
+                            for(int i = 0; i < tmp.size(); i++){
+                                if(!hashPeer.containsKey(tmp.get(i))) {
+                                    hashPeer.put(tmp.get(i), tmp.get(i));
+                                    peers.add(tmp.get(i));
+                                }
+                            }
                             closeSocket();
                         }
                     } catch (IOException e) {
@@ -494,7 +503,7 @@ public class Connection implements Runnable {
                         byte[] buffer = new byte[blockSize];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
-                        String data = new String(buf.getData());
+                        String data = new String(buf.getData(), 0, buf.getLength());
                         Document d = Document.parse(data);
 
                         if (d.getString("command").equals("HANDSHAKE_RESPONSE")) {
@@ -508,7 +517,13 @@ public class Connection implements Runnable {
 
                         } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
                             // TODO breath first search for other available peers
-                            peers.addAll((ArrayList<Document>) d.get("peers"));
+                            ArrayList<String> tmp = (ArrayList<String>) d.get("peers");
+                            for(int i = 0; i < tmp.size(); i++){
+                                if(!hashPeer.containsKey(tmp.get(i))) {
+                                    hashPeer.put(tmp.get(i), tmp.get(i));
+                                    peers.add(tmp.get(i));
+                                }
+                            }
                             closeSocket();
                         }
                     } catch (IOException e) {
@@ -552,7 +567,7 @@ public class Connection implements Runnable {
                     out.close();
                     TCPSocket.close();
                     // TODO breath first search for other available peers
-                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
+                    ArrayList<String> peers = (ArrayList<String>) d.get("peers");
                     if (!searchThroughPeers(peers)) {
                         flagActive = false;
                     }
@@ -577,7 +592,7 @@ public class Connection implements Runnable {
                 } else if (d.getString("command").equals("CONNECTION_REFUSED")) {
                     UDPSocket.close();
                     // TODO breath first search for other available peers
-                    ArrayList<Document> peers = (ArrayList<Document>) d.get("peers");
+                    ArrayList<String> peers = (ArrayList<String>) d.get("peers");
                     if (!searchThroughPeers(peers)) {
                         flagActive = false;
                     }
