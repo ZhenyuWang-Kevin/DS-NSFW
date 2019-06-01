@@ -120,4 +120,12 @@ public class ServerMain implements FileSystemObserver, Runnable {
 			return UDP.forceDisconnection(ip, port);
 		}
 	}
+
+	public ArrayList<String> getAllConnection(){
+		if(mode.equals("tcp")){
+			return TCP.getAllConnections();
+		} else {
+			return UDP.getAllConnections();
+		}
+	}
 }

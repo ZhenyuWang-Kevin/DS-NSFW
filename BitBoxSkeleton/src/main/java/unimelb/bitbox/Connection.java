@@ -377,13 +377,11 @@ public class Connection implements Runnable {
                 in.close();
             if(out != null)
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-            
                 out.close();
             if(TCPSocket != null)
                 TCPSocket.close();
             if(UDPSocket != null)
                 sendCommand(JsonUtils.HANDSHAKE_REQUEST(JsonUtils.getSelfHostPort()));
-            
                 UDPSocket.close();
         }catch(Exception e){
             log.info("Socket closed");
