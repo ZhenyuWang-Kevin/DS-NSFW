@@ -658,6 +658,7 @@ public class Connection implements Runnable {
                     // available for connection, send HANDSHAKE RESPONSE
                     out.write(JsonUtils.HANDSHAKE_RESPONSE());
                     out.newLine();
+                    out.flush();
                     flagActive = true;
 
                     // start the thread for the socket
