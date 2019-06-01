@@ -350,13 +350,18 @@ public class Connection implements Runnable {
                         byte[] buffer = new byte[blockSize];
                         DatagramPacket buf = new DatagramPacket(buffer, buffer.length);
                         UDPSocket.receive(buf);
-                        String data = new String(buf.getData(),0,buf.getLength());
-                        if(data.equals("")){
-                            log.info("disconnect with " + peerInfo.toString());
-                            flagActive = false;
+                        InetAddress incomeAddr = InetAddress.getByName(buf.getAddress().getHostAddress());
+                        if(!incomeAddr.equals(InetAddress.getByName(peerInfo.host))){
+                            log.warning("un-match ip address detected, possible port hijacking. Ignore incoming message");
                         } else {
-                            log.info("receiving data: " + data);
-                            receiveCommand(Document.parse(data));
+                            String data = new String(buf.getData(), 0, buf.getLength());
+                            if (data.equals("")) {
+                                log.info("disconnect with " + peerInfo.toString());
+                                flagActive = false;
+                            } else {
+                                log.info("receiving data: " + data);
+                                receiveCommand(Document.parse(data));
+                            }
                         }
                     } catch(IOException e){
                         log.warning(e.getMessage());
