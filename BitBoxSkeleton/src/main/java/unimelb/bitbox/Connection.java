@@ -381,7 +381,7 @@ public class Connection implements Runnable {
                 TCPSocket.close();
             if(UDPSocket != null)
                 UDPSocket.close();
-        }catch(IOException e){
+        }catch(Exception e){
             log.warning(e.getMessage());
         }
     }
