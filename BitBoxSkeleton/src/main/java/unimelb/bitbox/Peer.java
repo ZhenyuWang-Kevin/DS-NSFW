@@ -48,6 +48,8 @@ public class Peer
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             public void run(){
                 log.info("Shutdown bitbox, disconnect all peers.");
+                log.info("starting disconnect sequence!");
+                ServerMain.closeSequence = true;
                 s.clearAllConnection();
             }
         }, "Shutdown-thread"));

@@ -151,13 +151,19 @@ public class Connection implements Runnable {
         switch(json.getString("command")){
             case "INVALID_PROTOCOL":
                 // TODO disconnect the connection
-                disconnect();
+                if(!ServerMain.closeSequence)
+                    disconnect();
+                else
+                    closeSocket();
                 break;
 
             case "HANDSHAKE_REQUEST":
                 // TODO response with INVALID PROTOCOL, then disconnect the connection
                 sendCommand(JsonUtils.INVALID_PROTOCOL("Invalid command!!"));
-                disconnect();
+                if(!ServerMain.closeSequence)
+                    disconnect();
+                else
+                    closeSocket();
                 break;
 
             case "FILE_CREATE_REQUEST":
@@ -381,7 +387,6 @@ public class Connection implements Runnable {
             if(in != null)
                 in.close();
             if(out != null)
-
                 out.close();
             if(TCPSocket != null)
                 TCPSocket.close();

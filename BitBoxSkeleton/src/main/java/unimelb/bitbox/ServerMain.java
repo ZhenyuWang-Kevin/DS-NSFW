@@ -14,6 +14,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
 	private float timer;
+	public static boolean closeSequence = false;
 	private TCPMain TCP;
 	private UDPMain UDP;
 	private int syncTIme = Integer.parseInt(Configuration.getConfigurationValue("syncInterval"));
