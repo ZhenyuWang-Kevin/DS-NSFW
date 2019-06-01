@@ -100,7 +100,7 @@ public class UDPMain {
         Connection.UDPmain = this;
         // initialize server socket
         try{
-            listenSocket = new DatagramSocket(Integer.parseInt(Configuration.getConfigurationValue("port")));
+            listenSocket = new DatagramSocket(Integer.parseInt(Configuration.getConfigurationValue("udpPort")));
         }catch(IOException e){
             log.warning(e.getMessage());
         }

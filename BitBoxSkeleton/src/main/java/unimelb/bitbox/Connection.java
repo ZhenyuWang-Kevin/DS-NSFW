@@ -386,7 +386,7 @@ public class Connection implements Runnable {
             
                 UDPSocket.close();
         }catch(Exception e){
-            log.warning(e.getMessage());
+            log.info("Socket closed");
         }
     }
 

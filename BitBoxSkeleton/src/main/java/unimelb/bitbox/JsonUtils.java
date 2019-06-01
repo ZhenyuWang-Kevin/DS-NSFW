@@ -551,9 +551,16 @@ public class JsonUtils {
      * @return return the host port of it self
      */
     public static HostPort getSelfHostPort(){
-        return new HostPort(
-                Configuration.getConfigurationValue("advertisedName"),
-                Integer.parseInt(Configuration.getConfigurationValue("port"))
-        );
+        if(Configuration.getConfigurationValue("mode").equals("udp")){
+            return new HostPort(
+                    Configuration.getConfigurationValue("advertisedName"),
+                    Integer.parseInt(Configuration.getConfigurationValue("udpPort"))
+            );
+        } else {
+            return new HostPort(
+                    Configuration.getConfigurationValue("advertisedName"),
+                    Integer.parseInt(Configuration.getConfigurationValue("port"))
+            );
+        }
     }
 }

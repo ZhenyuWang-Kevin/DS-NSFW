@@ -54,7 +54,7 @@ public class Peer
 
         //Information of this Peer
         advertisedName = Configuration.getConfigurationValue("advertisedName");
-        PeerPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
+        PeerPort = Integer.parseInt(Configuration.getConfigurationValue("clientPort"));
         List_Peers = new HashMap<>();
 
 
@@ -80,7 +80,6 @@ public class Peer
 
             // Wait for connections.
             while(true){
-
 
                 Socket client = server.accept();
 
